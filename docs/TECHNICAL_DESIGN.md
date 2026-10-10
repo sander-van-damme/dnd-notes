@@ -20,7 +20,7 @@ De app verwerkt voornamelijk gesproken Vlaams/Nederlands met Engelstalige D&D-te
 
 ### Principes (vastgelegd)
 
-1. **Browser-first, webapp/PWA.** Geen verplichte native Android/Kotlin-app, helperproces of eigen inferentieserver. Op een ondersteund toestel volstaat de website; optionele PWA-installatie mag, maar is niet vereist.
+1. **Browser-first, webapp/PWA.** Geen verplichte native Android/Kotlin-app, helperproces of eigen inferentieserver.
 2. **Offline en privacy-first.** Alle microfoonaudio en inferentie blijven op het toestel. Geen audio upload, telemetrie of externe AI-calls; modelbestanden worden vóór offlinegebruik eenmalig gedownload en lokaal gecachet. Geen audio-opnames persisteren op schijf.
 3. **Eén multimodaal audio-naar-tekst/kennis-model tegelijk** als gewenste runtime. Geen standaard zware ASR+LLM-dubbelpipeline. Een aparte pipeline mag alleen als optionele benchmark-baseline, niet stilzwijgend als productiearchitectuur.
 4. **Modelonafhankelijke businesslogica.** Modellen en inference-adapters zijn verwisselbaar. Contextbeheer, geheugen, notitie-UI, VAD, benchmarking en opslag werken onafhankelijk van modelkeuze.
