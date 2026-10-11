@@ -19,7 +19,27 @@ DnD Notulist moet vooral **weinig rekenkracht en geheugen gebruiken**, terwijl d
 
 ## Status
 
-Dit project bevindt zich in de **ontwerp- en prototypefase**. De functies hierboven beschrijven het doel, niet een reeds werkende implementatie. Eerst wordt de lokale audioverwerking op echte toestellen getest; daarna bouwen we de notities, het campagnegeheugen en de verdere gebruikerservaring uit.
+Er is nu een werkende browserapp met campagnes, bewerkbare sessienotities, lokale opslag, Markdown-export, een campagnewoordenboek en een permanente testmodus. De lokale AI-integratie bevat Gemma 4 E2B en Ultravox 1B. Een model wordt pas bruikbaar voor live sessies nadat je een eigen audiotest hebt uitgevoerd en de notities hebt gecontroleerd.
+
+De app is een **experimenteel prototype**. Nederlandse notitiekwaliteit, realtime verwerking en geheugenverbruik op een echte Pixel 6a zijn nog geen bewezen eigenschappen. De testmodus maakt deze grenzen zichtbaar; er is geen terugval naar cloud-AI.
+
+### Lokaal starten
+
+Gebruik Node.js 24 (minimaal 22.12):
+
+```bash
+ONNXRUNTIME_NODE_INSTALL=skip npm ci
+npm run dev
+```
+
+De omgevingsvariabele slaat alleen de optionele native CUDA-download over; de app gebruikt ONNX Runtime in de browser. Voor offline gebruik maak je de productiebuild:
+
+```bash
+npm run build
+npm run preview
+```
+
+Lees **[Ontwikkeling en testen](docs/DEVELOPMENT.md)** voor browservereisten, de testcommando's, hosting en privacycontroles. De volledige voortgang tegenover de blauwdruk staat in **[Implementatiestatus](docs/IMPLEMENTATION_STATUS.md)**.
 
 ## Voor ontwikkelaars en AI coding agents
 
