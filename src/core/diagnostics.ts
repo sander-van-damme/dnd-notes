@@ -7,7 +7,7 @@ export interface Diagnostic {
 }
 const events: Diagnostic[] = [];
 let seq = 0;
-// Callers only submit technical metadata. Never raw exceptions, text, file names or audio.
+// Technical metadata only; inference text and audio are never logged.
 export function record(
   type: string,
   data: Record<string, number | boolean | string> = {},
@@ -23,6 +23,7 @@ export function record(
 }
 export const diagnostics = () => ({
   schema: 1,
+  build: import.meta.env.VITE_BUILD_COMMIT || 'development',
   privacy: 'metadata-only; no audio, transcripts or notes',
   userAgent: navigator.userAgent,
   events: [...events],
@@ -86,4 +87,15 @@ export function glossaryCandidates(
     });
   }
   return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 60);
+}
+
+export function recordError(stage: string, error: unknown) {
+  const message = (error instanceof Error ? error.message : String(error))
+    .replace(/https?:\/\/[^\s]+/g, '[URL]')
+    .slice(0, 1500);
+  record('error', {
+    stage,
+    message,
+    name: error instanceof Error ? error.name : 'Error',
+  });
 }

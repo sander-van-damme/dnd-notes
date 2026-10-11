@@ -19,7 +19,7 @@ DnD Notulist moet vooral **weinig rekenkracht en geheugen gebruiken**, terwijl d
 
 ## Status
 
-Er is nu een werkende browserapp met campagnes, bewerkbare sessienotities, lokale opslag, Markdown-export, een campagnewoordenboek en een permanente testmodus. De lokale AI-integratie bevat Gemma 4 E2B en Ultravox 1B. Een model wordt pas bruikbaar voor live sessies nadat je een eigen audiotest hebt uitgevoerd en de notities hebt gecontroleerd.
+Er is nu een werkende browserapp met campagnes, bewerkbare sessienotities, lokale opslag, Markdown-export, een campagnewoordenboek en een permanente testmodus. De lokale AI-integratie gebruikt Gemma 4 E2B via WebGPU. Je kiest eerst een campagne; modellen en tests staan achter het instellingenicoon. Bij een opname of test wordt het model automatisch gedownload indien nodig en geladen, en daarna hergebruikt zolang de pagina openblijft. Een voorafgaande test is aanbevolen, maar blokkeert de opnameknop niet.
 
 De app is een **experimenteel prototype**. Nederlandse notitiekwaliteit, realtime verwerking en geheugenverbruik op een echte Pixel 6a zijn nog geen bewezen eigenschappen. De testmodus maakt deze grenzen zichtbaar; er is geen terugval naar cloud-AI.
 

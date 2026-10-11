@@ -8,7 +8,7 @@ import type {
 } from './types';
 import { activeScene, contextFor, id, initialState, reduce } from './state';
 import { parseOutput } from './output';
-import { record } from './diagnostics';
+import { record, recordError } from './diagnostics';
 import { WorkerAdapter } from '../model/adapter';
 import { dtypeLabel, modelById } from '../model/catalog';
 import { AudioQueue } from '../audio/queue';
@@ -55,7 +55,7 @@ export class Engine {
   onChange: (view: EngineView) => void = () => {};
   adapter = new WorkerAdapter();
   modelId = 'gemma4';
-  provider: 'webgpu' | 'wasm' = 'webgpu';
+  provider = 'webgpu' as const;
   private queue?: AudioQueue;
   private segmenter?: Worker;
   private stopCapture?: () => Promise<void>;
@@ -85,7 +85,18 @@ export class Engine {
   clearError() {
     this.update({ error: '', warning: '' });
   }
-  async load(modelId: string, provider: 'webgpu' | 'wasm', download: boolean) {
+  async load(
+    modelId: string,
+    provider: 'webgpu',
+    download: boolean,
+    installOnly = false,
+  ) {
+    if (
+      this.view.loaded &&
+      this.modelId === modelId &&
+      this.provider === provider
+    )
+      return;
     this.cancel();
     const epoch = this.epoch;
     this.modelId = modelId;
@@ -102,19 +113,28 @@ export class Engine {
     });
     record('model_load', { model: modelId, provider });
     try {
-      await this.adapter.load(modelId, provider, download, (label, percent) =>
-        this.update({ progress: label, percent }),
+      await this.adapter.load(
+        modelId,
+        provider,
+        download,
+        (label, percent) => {
+          if (epoch === this.epoch) this.update({ progress: label, percent });
+        },
+        installOnly,
       );
       if (epoch !== this.epoch) return;
       this.update({
-        status: 'ready',
-        loaded: true,
+        status: installOnly ? 'idle' : 'ready',
+        loaded: !installOnly,
         verified: false,
-        progress: 'Geladen. Test eerst een kort audiofragment.',
+        progress: installOnly ? 'Model gedownload.' : 'Model geladen.',
       });
     } catch (e) {
-      if (epoch === this.epoch)
+      recordError('model_load', e);
+      if (epoch === this.epoch) {
+        this.adapter.unload();
         this.update({ status: 'idle', loaded: false, error: this.message(e) });
+      }
     }
   }
   verify() {
@@ -266,6 +286,7 @@ export class Engine {
         this.update({
           error: `Fragment ${Math.round(audio.startMs / 1000)}–${Math.round(audio.endMs / 1000)} s mislukt: ${this.message(error)}. Deze audio is niet bewaard.`,
         });
+        recordError('inference', error);
         record('error', {
           stage: 'inference',
           startMs: audio.startMs,
@@ -347,8 +368,7 @@ export class Engine {
     settings: InferenceSettings,
     segments: SegmentSettings,
   ) {
-    if (!this.view.verified)
-      throw Error('Test en bevestig eerst de modelkwaliteit op dit toestel.');
+    if (!this.view.loaded) throw Error('Het model is nog niet geladen.');
     this.createPipeline(sessionId, settings, segments, false);
     await this.resume();
   }
@@ -466,7 +486,7 @@ export class Engine {
         model: spec.repo,
         revision: spec.revision,
         provider: this.provider,
-        dtype: dtypeLabel(spec.id, this.provider),
+        dtype: dtypeLabel(),
         thinking: settings.thinking,
         strategy: settings.strategy,
         protocol: settings.protocol,

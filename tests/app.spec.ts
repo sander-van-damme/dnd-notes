@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 function wav() {
   const samples = 16000 * 3,
     b = Buffer.alloc(44 + samples * 2);
@@ -21,6 +21,23 @@ function wav() {
     );
   return b;
 }
+async function campaign(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Nieuwe campagne' }).click();
+  await page.getByLabel('Naam van de campagne').fill(name);
+  await page.getByRole('button', { name: 'Campagne aanmaken' }).click();
+}
+async function session(page: Page, name: string) {
+  await page
+    .getByRole('button', { name: 'Nieuwe sessie', exact: true })
+    .click();
+  await page.getByLabel('Naam van de sessie').fill(name);
+  await page.getByRole('button', { name: 'Sessie aanmaken' }).click();
+}
+async function settings(page: Page, name: string) {
+  const menu = page.getByRole('button', { name: 'Instellingen', exact: true });
+  if ((await menu.getAttribute('aria-expanded')) !== 'true') await menu.click();
+  await page.getByRole('button', { name, exact: true }).click();
+}
 test('campagne, bewerken, scène afronden, herladen en offline sessienotities', async ({
   page,
   context,
@@ -28,13 +45,8 @@ test('campagne, bewerken, scène afronden, herladen en offline sessienotities', 
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await expect(
-    page.getByText('Wat wordt jullie volgende avontuur?'),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Begin je eerste sessie' }).click();
-  await page.getByLabel('Naam van de campagne').fill('De groene vallei');
-  await page.getByLabel('Naam van de sessie').fill('De gesloten poort');
-  await page.getByRole('button', { name: 'Sessie aanmaken' }).click();
+  await campaign(page, 'De groene vallei');
+  await session(page, 'De gesloten poort');
   await expect(
     page.getByRole('heading', { name: 'De gesloten poort' }),
   ).toBeVisible();
@@ -50,6 +62,7 @@ test('campagne, bewerken, scène afronden, herladen en offline sessienotities', 
     page.getByText('Alles lokaal opgeslagen', { exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: /De groene vallei/ }).click();
   await expect(page.getByLabel('Notitie bewerken')).toHaveValue(
     'Eldrin bewaakt de poort.',
   );
@@ -60,11 +73,13 @@ test('campagne, bewerken, scène afronden, herladen en offline sessienotities', 
     page.getByText('Alles lokaal opgeslagen', { exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: /De groene vallei/ }).click();
   await context.setOffline(true);
   await expect(
     page.getByText('Alles lokaal opgeslagen', { exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: /De groene vallei/ }).click();
   await expect(page.getByLabel('Notitie bewerken')).toHaveValue(
     'Eldrin bewaakt de poort.',
   );
@@ -73,6 +88,7 @@ test('campagne, bewerken, scène afronden, herladen en offline sessienotities', 
     page.getByText('Alles lokaal opgeslagen', { exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: /De groene vallei/ }).click();
   await expect(page.getByLabel('Notitie bewerken')).toHaveValue(
     'Eldrin opent de poort.',
   );
@@ -80,10 +96,13 @@ test('campagne, bewerken, scène afronden, herladen en offline sessienotities', 
 });
 test('woordenboek bevestigt kandidaten expliciet', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Campagnes', exact: true }).click();
-  await page.getByRole('button', { name: 'Nieuwe campagne' }).click();
-  await page.getByLabel('Naam van de campagne').fill('Ravenveld');
-  await page.getByRole('button', { name: 'Campagne aanmaken' }).click();
+  await campaign(page, 'Ravenveld');
+  await page
+    .getByRole('button', { name: 'Campagne-instellingen', exact: true })
+    .click();
+  await page.getByLabel('Naam van de campagne').fill('Ravenveld II');
+  await page.getByLabel('Korte beschrijving').fill('Een mistig grensland');
+  await page.getByRole('button', { name: 'Opslaan', exact: true }).click();
   await page
     .getByLabel('Vorig sessieverslag')
     .fill('We ontmoetten Eldrin bij de rivier. Eldrin droeg een sleutel.');
@@ -95,7 +114,13 @@ test('woordenboek bevestigt kandidaten expliciet', async ({ page }) => {
     page.getByText('Alles lokaal opgeslagen', { exact: true }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Campagnes', exact: true }).click();
+  await page.getByRole('button', { name: /Ravenveld II/ }).click();
+  await page
+    .getByRole('button', { name: 'Campagne-instellingen', exact: true })
+    .click();
+  await expect(page.getByLabel('Korte beschrijving')).toHaveValue(
+    'Een mistig grensland',
+  );
   await expect(
     page.getByRole('button', { name: 'Eldrin verwijderen' }),
   ).toBeVisible();
@@ -106,7 +131,7 @@ test('mobiele lege toestand past zonder horizontale scroll', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'Jouw avonturenboek.' }),
+    page.getByRole('heading', { name: 'Avonturenboek' }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -115,7 +140,7 @@ test('mobiele lege toestand past zonder horizontale scroll', async ({
   ).toBe(true);
   await page.screenshot({ path: '/tmp/dnd-mobile.png', fullPage: true });
 });
-test('testpipeline en kwaliteitsgate met gecontroleerde workerstub; geen audio-opslag', async ({
+test('automatisch laden, model behouden na test en microfoon; geen audio-opslag', async ({
   page,
 }) => {
   await page.route('**/sw.js', (route) => route.abort());
@@ -126,16 +151,22 @@ test('testpipeline en kwaliteitsgate met gecontroleerde workerstub; geen audio-o
       body: `self.onmessage=({data})=>{if(data.type==='load')self.postMessage({id:data.id,result:true});else if(data.type==='process')self.postMessage({id:data.id,result:{rawText:'FACT: Eldrin bewaakt de poort.',transcript:'',totalMs:20,inputTokens:12,outputTokens:10}});};`,
     }),
   );
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'gpu', {
+      value: {
+        requestAdapter: async () => ({
+          features: new Set(['shader-f16']),
+          info: {},
+        }),
+      },
+    }),
+  );
+  let loads = 0;
+  page.on('request', (request) => {
+    if (/inference\.worker-/.test(request.url())) loads++;
+  });
   await page.goto('/');
-  await page
-    .getByRole('button', { name: 'Lokale modellen', exact: true })
-    .click();
-  await page.getByLabel('Uitvoering').selectOption('wasm');
-  await page.getByRole('button', { name: 'Laden uit lokale cache' }).click();
-  await expect(
-    page.getByText('Model geladen. Voer een korte audiotest'),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Naar testmodus' }).click();
+  await settings(page, 'Testlaboratorium');
   await page.getByLabel('Audiofragment kiezen').setInputFiles({
     name: 'synthetisch.wav',
     mimeType: 'audio/wav',
@@ -159,7 +190,7 @@ test('testpipeline en kwaliteitsgate met gecontroleerde workerstub; geen audio-o
       exact: false,
     })
     .click();
-  await expect(page.getByText('Configuratie bevestigd')).toBeVisible();
+  await expect(page.getByText('Kwaliteit beoordeeld')).toBeVisible();
   const stored = await page.evaluate(
     async () =>
       new Promise<string>((resolve) => {
@@ -181,10 +212,8 @@ test('testpipeline en kwaliteitsgate met gecontroleerde workerstub; geen audio-o
   await page
     .getByRole('button', { name: 'Avonturenboek', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Begin je eerste sessie' }).click();
-  await page.getByLabel('Naam van de campagne').fill('Microfoontest');
-  await page.getByLabel('Naam van de sessie').fill('Live test');
-  await page.getByRole('button', { name: 'Sessie aanmaken' }).click();
+  await campaign(page, 'Microfoontest');
+  await session(page, 'Live test');
   await page.getByRole('checkbox').check();
   const uploads: string[] = [];
   page.on('request', (request) => {
@@ -210,4 +239,93 @@ test('testpipeline en kwaliteitsgate met gecontroleerde workerstub; geen audio-o
     page.getByRole('button', { name: 'Start luisteren', exact: true }),
   ).toBeEnabled();
   expect(uploads).toEqual([]);
+  expect(loads).toBe(1);
+});
+
+test('eerste opname laadt automatisch zonder voorafgaande modeltest', async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'gpu', {
+      value: {
+        requestAdapter: async () => ({
+          features: new Set(['shader-f16']),
+          info: {},
+        }),
+      },
+    }),
+  );
+  await page.route('**/sw.js', (route) => route.abort());
+  await page.route(/\/assets\/inference\.worker-.*\.js$/, (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      headers: { 'Cross-Origin-Embedder-Policy': 'credentialless' },
+      body: `self.onmessage=({data})=>{if(data.type==='load')self.postMessage({id:data.id,result:true});else self.postMessage({id:data.id,result:{rawText:'FACT: Een deur gaat open.',transcript:'',totalMs:20,inputTokens:10,outputTokens:10}});};`,
+    }),
+  );
+  await page.goto('/');
+  await campaign(page, 'Eerste opname');
+  await session(page, 'Zonder test');
+  await page.getByRole('checkbox').check();
+  await expect(
+    page.getByRole('button', { name: 'Start luisteren', exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole('button', { name: 'Start luisteren', exact: true })
+    .click();
+  await expect(
+    page.getByText('Aan het luisteren', { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Stoppen en verwerken', exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: 'Start luisteren', exact: true }),
+  ).toBeEnabled();
+});
+
+test('laadfout is zichtbaar en logexport bevat build en foutdetails zonder notities', async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'gpu', {
+      value: {
+        requestAdapter: async () => ({
+          features: new Set(['shader-f16']),
+          info: {},
+        }),
+      },
+    }),
+  );
+  await page.route('**/sw.js', (route) => route.abort());
+  await page.route(/\/assets\/inference\.worker-.*\.js$/, (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      headers: { 'Cross-Origin-Embedder-Policy': 'credentialless' },
+      body: `self.onmessage=({data})=>self.postMessage({id:data.id,error:'Modeldownload onvolledig: embed_tokens_q4f16.onnx_data'});`,
+    }),
+  );
+  await page.goto('/');
+  await campaign(page, 'Geheime campagnenaam');
+  await session(page, 'Geheime sessienaam');
+  await page.getByRole('checkbox').check();
+  await page
+    .getByRole('button', { name: 'Start luisteren', exact: true })
+    .click();
+  await expect(page.getByRole('alert')).toContainText(
+    'embed_tokens_q4f16.onnx_data',
+  );
+  const file = page.waitForEvent('download');
+  await page
+    .getByRole('button', { name: 'Logs exporteren', exact: true })
+    .click();
+  const download = await file;
+  const stream = await download.createReadStream();
+  let text = '';
+  for await (const chunk of stream!) text += chunk.toString();
+  const log = JSON.parse(text);
+  expect(log.build).toMatch(/^[0-9a-f]{40}/);
+  expect(text).toContain('embed_tokens_q4f16.onnx_data');
+  expect(text).not.toContain('Geheime campagnenaam');
+  expect(text).not.toContain('Geheime sessienaam');
 });

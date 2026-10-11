@@ -2,16 +2,15 @@ import {
   env,
   Gemma4Processor,
   Gemma4ForConditionalGeneration,
-  UltravoxProcessor,
-  UltravoxModel,
   Tensor,
   type PreTrainedModel,
 } from '@huggingface/transformers';
 import { MODEL_CACHE, modelById } from './catalog';
+import { prepareModel } from './install';
 import { notesPrompt, transcribePrompt } from './prompts';
 import { finalText } from '../core/output';
 import assets from './assets.json';
-import { verifiedResponse, verifyCachedResponse } from './integrity';
+import { verifiedResponse } from './integrity';
 import { cloudflareWasm } from './runtime';
 import type { ProcessingRequest, ProcessingResult } from '../core/types';
 // All inference happens in this disposable worker. Terminating it aborts generation
@@ -97,7 +96,7 @@ env.fetch = async (input, init) => {
     );
   return stored;
 };
-let processor: Gemma4Processor | UltravoxProcessor | null = null;
+let processor: Gemma4Processor | null = null;
 let model: PreTrainedModel | null = null;
 let modelId = '';
 let busy = false;
@@ -108,30 +107,21 @@ async function generate(
   req: ProcessingRequest,
 ) {
   if (!processor || !model) throw Error('Laad eerst een model.');
-  const messages =
-    modelId === 'gemma4'
-      ? [
-          { role: 'system', content: system },
-          {
-            role: 'user',
-            content: audio ? [{ type: 'audio' }, { type: 'text', text }] : text,
-          },
-        ]
-      : [
-          { role: 'system', content: system },
-          { role: 'user', content: `${audio ? '<|audio|>\n' : ''}${text}` },
-        ];
+  const messages = [
+    { role: 'system', content: system },
+    {
+      role: 'user',
+      content: audio ? [{ type: 'audio' }, { type: 'text', text }] : text,
+    },
+  ];
   const prompt = processor.apply_chat_template(messages, {
     tokenize: false,
     add_generation_prompt: true,
     ...{ enable_thinking: req.thinking === 'on' },
   });
-  const inputs =
-    modelId === 'gemma4'
-      ? await (processor as Gemma4Processor)(prompt, null, audio, {
-          add_special_tokens: false,
-        })
-      : await (processor as UltravoxProcessor)(prompt, audio);
+  const inputs = await processor(prompt, null, audio, {
+    add_special_tokens: false,
+  });
   const inputTokens = inputs.input_ids.dims.at(-1) as number;
   const result = await model.generate({
     ...inputs,
@@ -159,7 +149,7 @@ self.onmessage = async ({ data }) => {
   busy = true;
   try {
     if (type === 'load') {
-      if (import.meta.env.MODE === 'cloudflare') {
+      if (!data.installOnly && import.meta.env.MODE === 'cloudflare') {
         if (!env.backends.onnx.wasm)
           throw Error('WASM-runtime is niet beschikbaar.');
         env.backends.onnx.wasm.wasmBinary = await cloudflareWasm();
@@ -172,26 +162,24 @@ self.onmessage = async ({ data }) => {
       env.remotePathTemplate = `{model}/resolve/${spec.revision}/`;
       networkAllowed = data.download;
       env.allowRemoteModels = data.download;
-      const cache = await caches.open(MODEL_CACHE);
-      for (const asset of assets[spec.id]) {
-        const url = `https://huggingface.co/${spec.repo}/resolve/${spec.revision}/${asset.path}`;
-        const cached = await cache.match(url);
-        if (cached) {
-          self.postMessage({
-            id,
-            progress: { label: `Checksum controleren: ${asset.path}` },
-          });
-          try {
-            await verifyCachedResponse(cached, asset);
-          } catch (error) {
-            await cache.delete(url);
-            throw error;
-          }
-        }
+      await prepareModel(data.download, (label, percent) =>
+        self.postMessage({ id, progress: { label, percent } }),
+      );
+      if (data.installOnly) {
+        networkAllowed = false;
+        env.allowRemoteModels = false;
+        self.postMessage({ id, result: true });
+        return;
       }
+      self.postMessage({
+        id,
+        progress: { label: 'Model initialiseren op WebGPU…', percent: 100 },
+      });
+      networkAllowed = false;
+      env.allowRemoteModels = false;
       const options = {
         revision: spec.revision,
-        local_files_only: !data.download,
+        local_files_only: true,
         progress_callback: (p: {
           status: string;
           file?: string;
@@ -206,40 +194,19 @@ self.onmessage = async ({ data }) => {
       model = null;
       processor = null;
       // Sequential initialization avoids a second model and reduces peak memory.
-      processor =
-        spec.id === 'gemma4'
-          ? await Gemma4Processor.from_pretrained(spec.repo, options)
-          : await UltravoxProcessor.from_pretrained(spec.repo, options);
-      const device = data.provider === 'webgpu' ? 'webgpu' : 'wasm';
-      model =
-        spec.id === 'gemma4'
-          ? await Gemma4ForConditionalGeneration.from_pretrained(spec.repo, {
-              ...options,
-              device,
-              dtype:
-                device === 'webgpu'
-                  ? {
-                      audio_encoder: 'fp16',
-                      vision_encoder: 'fp16',
-                      embed_tokens: 'q4f16',
-                      decoder_model_merged: 'q4f16',
-                    }
-                  : {
-                      audio_encoder: 'q4',
-                      vision_encoder: 'q4',
-                      embed_tokens: 'q4',
-                      decoder_model_merged: 'q4',
-                    },
-            })
-          : await UltravoxModel.from_pretrained(spec.repo, {
-              ...options,
-              device,
-              dtype: {
-                audio_encoder: 'q4',
-                embed_tokens: 'q8',
-                decoder_model_merged: 'q4',
-              },
-            });
+      if (data.provider !== 'webgpu')
+        throw Error('Alleen WebGPU wordt ondersteund.');
+      processor = await Gemma4Processor.from_pretrained(spec.repo, options);
+      model = await Gemma4ForConditionalGeneration.from_pretrained(spec.repo, {
+        ...options,
+        device: 'webgpu',
+        dtype: {
+          audio_encoder: 'fp16',
+          vision_encoder: 'fp16',
+          embed_tokens: 'q4f16',
+          decoder_model_merged: 'q4f16',
+        },
+      });
       networkAllowed = false;
       env.allowRemoteModels = false;
       self.postMessage({ id, result: true });
@@ -296,3 +263,14 @@ self.onmessage = async ({ data }) => {
     busy = false;
   }
 };
+
+self.addEventListener('unhandledrejection', (event) => {
+  event.preventDefault();
+  self.postMessage({
+    id: loadRequestId,
+    error:
+      event.reason instanceof Error
+        ? event.reason.message
+        : 'Onbehandelde runtimefout tijdens laden.',
+  });
+});

@@ -12,6 +12,7 @@ export const activeScene = (session: Session) =>
   session.scenes.find((s) => !s.final)!;
 export type Action =
   | { type: 'campaign'; id: string; name: string }
+  | { type: 'campaign-edit'; id: string; name: string; description: string }
   | { type: 'glossary'; campaignId: string; words: string[] }
   | {
       type: 'session';
@@ -83,6 +84,12 @@ export function reduce(state: AppState, action: Action): AppState {
       name: action.name.trim().slice(0, 100),
       glossary: [],
     });
+  } else if (action.type === 'campaign-edit') {
+    const campaign = next.campaigns.find((c) => c.id === action.id);
+    if (campaign && action.name.trim()) {
+      campaign.name = action.name.trim().slice(0, 100);
+      campaign.description = action.description.trim().slice(0, 1000);
+    }
   } else if (action.type === 'glossary') {
     const c = next.campaigns.find((c) => c.id === action.campaignId);
     if (c)

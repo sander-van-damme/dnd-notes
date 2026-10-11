@@ -27,34 +27,25 @@ npx playwright install chromium
 CHROMIUM_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())") npm run test:e2e
 ```
 
-CI installeert ook de Linux-browserdependencies. De normale tests downloaden geen modellen. De modelworkerstub in één integratietest controleert alleen de appkoppeling, kwaliteitsgate en opslagprivacy; hij bewijst geen modelkwaliteit. Pure tests controleren revisieconflicten, dubbele resultaten, gedachtefiltering, parsers, transactionele opslag, audiotijdstempels, wachtrijlimieten, annuleren en gewichtschecksums.
+CI installeert ook de Linux-browserdependencies. De normale tests downloaden geen modellen. De modelworkerstubs in de integratietests controleren alleen de appkoppeling, automatisch laden, modelhergebruik, logexport en opslagprivacy; ze bewijzen geen modelkwaliteit. Pure tests controleren revisieconflicten, dubbele resultaten, gedachtefiltering, parsers, transactionele opslag, audiotijdstempels, wachtrijlimieten, annuleren en gewichtschecksums.
 
 ## Echt model testen
 
-1. Open de productiebuild via HTTPS of lokaal op dezelfde machine.
-2. Kies **Lokale modellen**. Selecteer Gemma 4 of Ultravox en de provider. Gemma/WebGPU vereist `shader-f16`. WebAssembly is een experimentele, meestal veel tragere CPU-optie; een providerkeuze is geen compatibiliteitsgarantie.
-3. Download en laad het model. In `src/model/catalog.ts` zijn repository, revisie, licentie, audiolimiet en kwantisatie vastgelegd. `assets.json` bevat de bestandsnamen, lengtes en SHA-256 uit de Hugging Face-tree op de vastgelegde revisies. Gewichten worden streaming geverifieerd, ook als ze al in de cache staan. Een fout vraagt om opnieuw downloaden; controle wordt nooit uitgeschakeld.
-4. Kies **Testlaboratorium**, selecteer een eigen legaal audiofragment van 10–30 seconden en voer een proef uit. Controleer taal, namen, feiten en onzekerheid. Bevestig de configuratie alleen als de notities werkelijk kloppen. Alleen deze geladen configuratie wordt voor live sessies vrijgegeven. Ontladen of herladen vereist een nieuwe test.
-5. Vergelijk dezelfde input met beide strategieën (direct versus transcript + notities op hetzelfde model), uitvoerprotocollen en ondersteunde thinkinginstellingen. Tests verlopen na elkaar. Vergelijk koude/warme runs apart; een eerste run na laden bewijst niet dat alle hardwarecaches koud zijn.
-6. Ontlaad het model, zet netwerk uit, herlaad de pagina en laad uit de lokale cache. Herhaal de audiotest. Een bestandsaantal in de cache alleen bewijst geen offline gereedheid.
-7. Test pas daarna een live sessie. Vraag toestemming aan tafelgenoten. Gebruik een echte Pixel 6a voor prestaties, microfoonkwaliteit, permissies, achtergrondgedrag, temperatuur en geheugen.
+1. Gebruik HTTPS en een browser met WebGPU en `shader-f16`. CPU-inferentie is verwijderd. ONNX gebruikt intern nog WASM-runtimebestanden voor de WebGPU-engine; dit is geen CPU-fallback.
+2. Open het instellingenicoon → **Lokale modellen**. De Gemma-tegel toont de volledige WebGPU-downloadgrootte, aanwezige bytes en installatiestatus. Alleen een complete set van ONNX-gewichten, externe `.onnx_data`-bestanden en processorbestanden geldt als geïnstalleerd. Een oudere gecachete revisie toont **Bijwerken** wanneer deze app een nieuwere gepinde revisie vereist. Er wordt niet automatisch een willekeurige upstream-modelversie geladen.
+3. **Downloaden** bewaart de benodigde bestanden en controleert de gewichtschecksums. Een onderbroken download kan hervatten. **Start luisteren** en **Start test** doen het laden automatisch, inclusief downloaden van ontbrekende bestanden indien nodig. Na een geslaagde test of opname blijft dezelfde modelworker beschikbaar. Alleen expliciet annuleren, verwijderen, sluiten/herladen of een fatale runtimefout beëindigt hem.
+4. Gebruik **Testlaboratorium** met een kort eigen fragment. Controleer de uitvoer op namen, feiten en verzinsels. Beoordeling is geen verplichte ontgrendeling voor live sessies. Deze wijziging volgt de actuele gebruikersinstructie; modelkwaliteit blijft experimenteel.
+5. Sluit de pagina, open haar offline en herhaal een korte proef. Test snelheid, geheugen en temperatuur vervolgens op het doeltoestel, inclusief Pixel 6a. De cloudtestomgeving heeft geen bruikbare WebGPU-adapter; tests met workerstubs bewijzen geen GPU-inferentie.
 
-Een optionele automatisering met echte gewichten staat in `scripts/smoke-model.mjs`. Hij gebruikt de echte Ultravox-adapter in Chromium/WASM, test modelherstart uit cache zonder netwerk en voert audio-inferentie uit. Hij verwacht extern voorbereide fixtures; gewichten en audio horen niet in Git:
+`npm run test:model` is een optionele echte Gemma-proef. Start eerst de productiepreview en gebruik `AUDIO_FIXTURE=/pad/naar/fragment.wav npm run test:model`. Zet eventueel `HEADLESS=0` en `MODEL_PROFILE_DIR=/pad/naar/testprofiel` om een zichtbaar, blijvend browserprofiel te gebruiken. Zonder profielpad wordt het tijdelijke profiel na afloop verwijderd. De eerste proef downloadt meerdere GB. Het script weigert een machine zonder WebGPU met `shader-f16`; het bevat geen modelstub.
 
-```bash
-# Start eerst npm run preview.
-MODEL_FIXTURE_DIR=/pad/naar/gecontroleerde-ultravox-bestanden \
-AUDIO_FIXTURE=/pad/naar/toegestaan-fragment.wav \
-npm run test:model
-```
+## Modelproblemen en logs
 
-De test gebruikt een eigen tijdelijk, normaal browserprofiel. Grote Cache Storage-writes faalden in Chromiums privémodus; gewone Playwright-contexten zijn daarom voor deze specifieke modeltest niet representatief. Het profiel wordt na afloop verwijderd.
+**Logs exporteren** staat onderaan iedere pagina en in het instellingenmenu. Het bestand bevat de volledige buildcommit, browsermogelijkheden, cachestatus, laadfasen, percentages, timers en foutmeldingen. Het bevat geen audio, notities, campagnenamen of modeluitvoer. Het log is begrensd en blijft in RAM tot herladen. Vermeld de zichtbare buildcommit bij een bugmelding.
 
-Standaard gebruikt deze controle de tweestapsstrategie; zet `MODEL_STRATEGY=direct` voor de directe route. Een technische PASS betekent uitsluitend dat laden, offline herladen en de echte inferentieaanroep slagen zonder externe requests. Het script rapporteert daarnaast de daadwerkelijke uitvoer en het aantal notitievoorstellen. Een weigering of onbruikbare tekst is geen inhoudelijke PASS; de app vereist een afzonderlijke menselijke kwaliteitscontrole.
+Transformers.js 4.3.1 kan een ontbrekend extern ONNX-gewicht in een async Promise executor laten vastlopen. De worker controleert daarom eerst de volledige gepinde Gemma-bestandsset, downloadt ontbrekende delen vóór het initialiseren, en meldt onvolledige offline caches direct. Gewichten worden streaming op SHA-256 gecontroleerd. Onbehandelde worker-rejections worden zichtbaar; vier minuten zonder workerrespons beëindigt een hangende opdracht met een gelogde fout. Een inactief geladen model heeft geen timeout.
 
-Transformers.js 4.3.1 geeft de revisie niet overal door bij tokenizer-metadata. De worker legt daarom ook het URL-template vast op de modelrevisie en controleert de uiteindelijke requestpaden. Modelgewichten worden vóór ONNX-bufferallocatie streaming geverifieerd en opgeslagen; mislukte cache-writes zijn zichtbaar als laadfout.
-
-De fixturemap bevat de ongewijzigde bestanden uit Ultravox-revisie `1ccaedd19b01bc50b5257800ea8b90f53a5cbffa`: `config.json`, `preprocessor_config.json`, `processor_config.json`, `tokenizer.json`, `tokenizer_config.json`, `onnx/audio_encoder_q4.onnx`, `onnx/embed_tokens_quantized.onnx`, `onnx/decoder_model_merged_q4.onnx`. De test routeert uitsluitend die exacte repository/revisie naar een tijdelijke lokale fileserver; de adapter en SHA-256-controles blijven actief. Het laden via deze fixture omzeilt geen integriteitscheck, maar valideert niet de externe CDN-route van een eindgebruiker.
+De library geeft de revisie niet overal door bij tokenizer-metadata. De worker legt daarom ook het URL-template vast op de modelrevisie. Bij inferentie staan remote requests uit. Ultravox is verwijderd wegens onbruikbare weigeringen en verzonnen uitvoer; de gebruikte lokale adapter biedt geen ondersteunde schakelaar om dit gedrag uit te zetten.
 
 ## Hosting en offline gebruik
 

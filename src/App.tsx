@@ -25,7 +25,6 @@ import {
   Feather,
   Play,
   Settings2,
-  HardDrive,
   CircleHelp,
   Dices,
   Menu,
@@ -37,9 +36,9 @@ import {
   cacheStatus,
   capabilities,
   clearModelCache,
-  dtypeLabel,
   modelById,
   models,
+  modelBytes,
   RUNTIME_VERSION,
 } from './model/catalog';
 import { defaultSegments } from './audio/segmenter';
@@ -49,6 +48,7 @@ import {
   glossaryCandidates,
   percentile,
   record,
+  recordError,
 } from './core/diagnostics';
 import type {
   InferenceSettings,
@@ -72,13 +72,7 @@ const labels: Record<Page, string> = {
   sessions: 'Avonturenboek',
   models: 'Lokale modellen',
   test: 'Testlaboratorium',
-  campaigns: 'Campagnes',
-};
-const icons = {
-  sessions: BookOpen,
-  models: Cpu,
-  test: FlaskConical,
-  campaigns: Users,
+  campaigns: 'Campagne-instellingen',
 };
 function Button({
   children,
@@ -286,10 +280,13 @@ export default function App() {
   const [error, setError] = useState(''),
     [online, setOnline] = useState(navigator.onLine),
     [shellReady, setShellReady] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemma4'),
-    [provider, setProvider] = useState<'webgpu' | 'wasm'>('webgpu');
+  const [selectedModel, setSelectedModel] = useState('gemma4');
+  const provider = 'webgpu' as const;
+  const [globalSettings, setGlobalSettings] = useState(false);
+  const [campaignName, setCampaignName] = useState(''),
+    [description, setDescription] = useState('');
   const [caps, setCaps] = useState<Awaited<ReturnType<typeof capabilities>>>(),
-    [cache, setCache] = useState<{ id: string; files: number }[]>([]);
+    [cache, setCache] = useState<Awaited<ReturnType<typeof cacheStatus>>>([]);
   const [settings, updateSettings] = useState<InferenceSettings>(defaults),
     [segments, updateSegments] = useState<SegmentSettings>(defaultSegments);
   const setSettings = (value: InferenceSettings) => {
@@ -316,13 +313,11 @@ export default function App() {
     'loading',
   ].includes(view.status);
   const visibleSessions = state.sessions.filter(
-    (s) => !campaignId || s.campaignId === campaignId,
+    (s) => s.campaignId === campaignId,
   );
   const session =
     visibleSessions.find((s) => s.id === sessionId) ?? visibleSessions[0];
-  const campaign =
-    state.campaigns.find((c) => c.id === (campaignId || session?.campaignId)) ??
-    state.campaigns[0];
+  const campaign = state.campaigns.find((c) => c.id === campaignId);
   const spec = modelById(selectedModel);
   const act = (action: Action) => {
     void store.dispatch(action).catch((e) => {
@@ -332,9 +327,10 @@ export default function App() {
   };
   const attempt = (fn: () => Promise<void>) => {
     setError('');
-    void fn().catch((e) =>
-      setError(e instanceof Error ? e.message : 'Actie mislukt.'),
-    );
+    void fn().catch((e) => {
+      recordError('interface', e);
+      setError(e instanceof Error ? e.message : 'Actie mislukt.');
+    });
   };
   useEffect(() => {
     engine.onChange = setView;
@@ -382,8 +378,19 @@ export default function App() {
           setError('De app kon niet voor offline gebruik worden opgeslagen.'),
         );
     }
-    record('app_start');
+    const uncaught = (event: ErrorEvent) =>
+      recordError('browser', event.error || Error(event.message));
+    const rejected = (event: PromiseRejectionEvent) =>
+      recordError('promise', event.reason);
+    window.addEventListener('error', uncaught);
+    window.addEventListener('unhandledrejection', rejected);
+    record('app_start', {
+      build: import.meta.env.VITE_BUILD_COMMIT,
+      isolated: crossOriginIsolated,
+    });
     return () => {
+      window.removeEventListener('error', uncaught);
+      window.removeEventListener('unhandledrejection', rejected);
       window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('online', network);
       window.removeEventListener('offline', network);
@@ -447,20 +454,60 @@ export default function App() {
       setModal(null);
     });
   }
-  async function load(downloadModel: boolean) {
+  async function load(downloadModel: boolean, installOnly = false) {
     if (downloadModel) {
       const estimate = await navigator.storage?.estimate();
-      if (
-        estimate?.quota &&
-        estimate.quota - (estimate.usage ?? 0) < spec.estimatedGB * 1e9
-      )
+      const current = (await cacheStatus()).find((m) => m.id === selectedModel);
+      const remaining =
+        Math.max(0, modelBytes - (current?.bytes ?? 0)) + 100_000_000;
+      if (estimate?.quota && estimate.quota - (estimate.usage ?? 0) < remaining)
         throw Error(
           'Er lijkt onvoldoende browseropslag vrij. Maak ruimte vrij voordat je dit model downloadt.',
         );
       await navigator.storage?.persist();
     }
-    await engine.load(selectedModel, provider, downloadModel);
+    await engine.load(selectedModel, provider, downloadModel, installOnly);
     setCache(await cacheStatus());
+  }
+  async function ensureModel() {
+    if (engine.view.loaded && engine.modelId === selectedModel) return;
+    const available = await capabilities();
+    if (!available.webgpu || !available.fp16)
+      throw Error(
+        'Deze browser ondersteunt geen WebGPU met shader-f16. Gebruik een ondersteunde browser en grafische processor.',
+      );
+    const status = await cacheStatus();
+    await load(!status.find((m) => m.id === selectedModel)?.installed);
+    if (!engine.view.loaded)
+      throw Error(engine.view.error || 'Model laden is geannuleerd.');
+  }
+  function campaignSettings() {
+    if (!campaign) return;
+    setCampaignName(campaign.name);
+    setDescription(campaign.description || '');
+    setPage('campaigns');
+  }
+  function exportLogs() {
+    download(
+      'notulist-logs.json',
+      JSON.stringify(
+        {
+          ...diagnostics(),
+          model: {
+            id: engine.modelId,
+            revision: spec.revision,
+            status: view.status,
+            progress: view.progress,
+            error: view.error,
+          },
+          capabilities: caps,
+          cache,
+        },
+        null,
+        2,
+      ),
+      'application/json',
+    );
   }
   const errorText = store.error || error || view.error;
   return (
@@ -475,62 +522,67 @@ export default function App() {
           }}
         >
           <img src="/icon.svg" alt="" />
-          <span>
-            Notulist<small>JOUW AVONTURENBOEK</small>
-          </span>
+          <span>Notulist</span>
         </a>
         <div className="sidebar-rule" />
-        <div className="nav-caption">AAN DE SPEELTAFEL</div>
         <nav aria-label="Hoofdnavigatie">
-          {(Object.keys(labels) as Page[]).map((key) => {
-            const Icon = icons[key];
-            return (
-              <button
-                key={key}
-                aria-current={page === key ? 'page' : undefined}
-                className={page === key ? 'nav-item active' : 'nav-item'}
-                onClick={() => {
-                  setPage(key);
-                  setMobileNav(false);
-                }}
-              >
-                <Icon size={19} />
-                {labels[key]}
-                {page === key && <ChevronRight size={15} />}
-              </button>
-            );
-          })}
+          <button
+            className="nav-item active"
+            onClick={() => {
+              setPage('sessions');
+              setMobileNav(false);
+            }}
+          >
+            <BookOpen size={19} /> Avonturenboek
+          </button>
         </nav>
+        <div className="global-settings">
+          <button
+            className="icon-button"
+            aria-label="Instellingen"
+            aria-expanded={globalSettings}
+            onClick={() => setGlobalSettings(!globalSettings)}
+          >
+            <Settings2 size={22} />
+          </button>
+          {globalSettings && (
+            <nav aria-label="Instellingen">
+              {(['models', 'test'] as const).map((key) => (
+                <button
+                  key={key}
+                  className="nav-item"
+                  onClick={() => {
+                    setPage(key);
+                    setMobileNav(false);
+                  }}
+                >
+                  {labels[key]}
+                </button>
+              ))}
+              <button className="nav-item" onClick={exportLogs}>
+                <Download size={17} /> Logs exporteren
+              </button>
+            </nav>
+          )}
+        </div>
         <div className="sidebar-bottom">
           <div className="privacy-mark">
             <ShieldCheck size={20} />
             <div>
               <strong>Jouw verhaal blijft van jou.</strong>
-              <p>Audio en AI blijven op dit toestel.</p>
+              <p>Verwerking gebeurt op dit toestel.</p>
             </div>
           </div>
-          <div className="version">LOKAAL · PRIVÉ · VERSIE 0.1</div>
         </div>
       </aside>
       <div className="workspace">
-        <header className="topbar">
-          <button
-            className="mobile-menu"
-            aria-label="Menu openen"
-            onClick={() => setMobileNav(!mobileNav)}
-          >
-            <Menu />
-          </button>
-          <div className="breadcrumb">
-            Mijn tafel <ChevronRight size={13} />
-            <strong>{labels[page]}</strong>
-          </div>
-          <div className="top-status">
-            <span className={`status-dot ${online ? '' : 'offline'}`} />
-            {online ? 'Op dit toestel' : 'Offline'}
-            <span className="avatar">D20</span>
-          </div>
-        </header>
+        <button
+          className="mobile-menu"
+          aria-label="Menu openen"
+          onClick={() => setMobileNav(!mobileNav)}
+        >
+          <Menu />
+        </button>
         <main>
           {errorText && (
             <div className="alert error" role="alert">
@@ -565,656 +617,568 @@ export default function App() {
               </p>
             </div>
           )}
+          {view.status === 'loading' && (
+            <div className="panel progress-area" role="status">
+              <progress max={100} value={view.percent} />
+              <p>
+                {view.percent !== undefined
+                  ? `${view.percent.toFixed(0)}% · `
+                  : ''}
+                {view.progress}
+              </p>
+              <Button kind="ghost" onClick={() => engine.cancel()}>
+                Annuleren
+              </Button>
+            </div>
+          )}
           {page === 'sessions' && (
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">VAN DOBBELSTEEN TOT VERHAAL</div>
-                  <h1>
-                    Jouw avonturenboek<span>.</span>
-                  </h1>
-                  <p>Beleef het avontuur. Bewaar wat ertoe doet.</p>
+                  <h1>Avonturenboek</h1>
                 </div>
-                <Button onClick={openSession} disabled={busy || !store.ready}>
-                  <Plus size={17} /> Nieuwe sessie
+                <Button
+                  onClick={() => {
+                    setNewCampaign('');
+                    setModal('campaign');
+                  }}
+                  disabled={busy || !store.ready}
+                >
+                  <Plus size={17} /> Nieuwe campagne
                 </Button>
               </div>
-              <div className="session-layout">
-                <section className="session-list panel">
-                  <div className="panel-label">
-                    SESSIES <span>{state.sessions.length}</span>
-                  </div>
-                  {state.campaigns.length > 0 && (
-                    <label className="compact-label">
-                      Campagne
-                      <select
-                        value={campaign?.id ?? ''}
-                        disabled={busy}
-                        onChange={(e) => setCampaignId(e.target.value)}
-                      >
-                        {state.campaigns.map((c) => (
-                          <option value={c.id} key={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  {state.sessions.filter(
-                    (s) => !campaign || s.campaignId === campaign.id,
-                  ).length === 0 ? (
-                    <div className="list-empty">
-                      <Dices size={27} />
-                      <p>
-                        Elk avontuur begint
-                        <br />
-                        met een eerste sessie.
-                      </p>
-                    </div>
-                  ) : (
-                    state.sessions
-                      .filter((s) => !campaign || s.campaignId === campaign.id)
-                      .map((s) => (
-                        <button
-                          disabled={busy}
-                          className={`session-item ${session?.id === s.id ? 'selected' : ''}`}
-                          key={s.id}
-                          onClick={() => setSessionId(s.id)}
-                        >
-                          <BookOpen size={16} />
-                          <span>
-                            <strong>{s.title}</strong>
-                            <small>
-                              {new Date(s.createdAt).toLocaleDateString(
-                                'nl-BE',
-                                { day: 'numeric', month: 'long' },
-                              )}{' '}
-                              ·{' '}
-                              {s.scenes.reduce(
-                                (n, s) =>
-                                  n +
-                                  s.notes.filter((n) => n.text.trim()).length,
-                                0,
-                              )}{' '}
-                              notities
-                            </small>
-                          </span>
-                          <ChevronRight size={14} />
-                        </button>
-                      ))
-                  )}
-                  <div className="list-footer">
-                    <HardDrive size={14} /> Alleen opgeslagen in deze browser
-                  </div>
-                </section>
-                <div className="session-main">
-                  {!session ? (
-                    <section className="panel welcome">
-                      <div className="welcome-art">
-                        <div className="orbit orbit-one" />
-                        <div className="orbit orbit-two" />
-                        <img src="/icon.svg" alt="" />
-                        <span className="star star-one">✦</span>
-                        <span className="star star-two">✧</span>
-                      </div>
-                      <div className="eyebrow">
-                        EEN LEGE BLADZIJDE, EINDELOZE VERHALEN
-                      </div>
-                      <h2>Wat wordt jullie volgende avontuur?</h2>
-                      <p>
-                        Maak een campagne en een sessie aan. Schrijf zelf mee,
-                        of laat een lokaal model helpen om de belangrijke
-                        momenten vast te leggen.
-                      </p>
-                      <Button onClick={openSession} disabled={!store.ready}>
-                        <Plus size={17} /> Begin je eerste sessie
-                      </Button>
-                      <div className="welcome-features">
-                        <span>
-                          <ShieldCheck size={16} /> Geen audio-opnames
-                        </span>
-                        <span>
-                          <Feather size={16} /> Altijd zelf bewerkbaar
-                        </span>
-                      </div>
+              {!campaign ? (
+                <div className="campaign-grid">
+                  {state.campaigns.length === 0 && (
+                    <section className="panel">
+                      <h2>Kies of maak een campagne</h2>
                     </section>
-                  ) : (
-                    <>
-                      <section className="panel session-title">
-                        <div>
-                          <span className="eyebrow">
-                            {
-                              state.campaigns.find(
-                                (c) => c.id === session.campaignId,
-                              )?.name
-                            }
-                          </span>
-                          <h2>{session.title}</h2>
-                          <span className="subtle">
-                            {new Date(session.createdAt).toLocaleDateString(
-                              'nl-BE',
-                              {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              },
-                            )}
-                          </span>
+                  )}
+                  {state.campaigns.map((c) => (
+                    <button
+                      className="panel campaign-card"
+                      key={c.id}
+                      onClick={() => {
+                        setCampaignId(c.id);
+                        setSessionId('');
+                      }}
+                    >
+                      <BookOpen size={24} />
+                      <h2>{c.name}</h2>
+                      {c.description && <p>{c.description}</p>}
+                      <small>
+                        {
+                          state.sessions.filter((s) => s.campaignId === c.id)
+                            .length
+                        }{' '}
+                        sessies
+                      </small>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="section-heading campaign-heading">
+                    <div>
+                      <Button
+                        kind="ghost"
+                        disabled={busy}
+                        onClick={() => setCampaignId('')}
+                      >
+                        Alle campagnes
+                      </Button>
+                      <h2>
+                        {campaign.name}{' '}
+                        <button
+                          className="icon-button"
+                          aria-label="Campagne-instellingen"
+                          disabled={busy}
+                          onClick={campaignSettings}
+                        >
+                          <Settings2 size={19} />
+                        </button>
+                      </h2>
+                      {campaign.description && <p>{campaign.description}</p>}
+                    </div>
+                    <Button disabled={busy} onClick={openSession}>
+                      <Plus size={17} /> Nieuwe sessie
+                    </Button>
+                  </div>
+                  <div className="session-layout">
+                    <section className="session-list panel">
+                      <div className="panel-label">
+                        SESSIES <span>{visibleSessions.length}</span>
+                      </div>
+                      {state.sessions.filter(
+                        (s) => !campaign || s.campaignId === campaign.id,
+                      ).length === 0 ? (
+                        <div className="list-empty">
+                          <Dices size={27} />
+                          <p>
+                            Elk avontuur begint
+                            <br />
+                            met een eerste sessie.
+                          </p>
                         </div>
-                        <div className="button-row">
-                          <Button
-                            kind="ghost"
-                            title="Exporteer sessienotities"
-                            onClick={() =>
-                              download(
-                                'sessienotities.md',
-                                markdown(
-                                  session,
+                      ) : (
+                        state.sessions
+                          .filter(
+                            (s) => !campaign || s.campaignId === campaign.id,
+                          )
+                          .map((s) => (
+                            <button
+                              disabled={busy}
+                              className={`session-item ${session?.id === s.id ? 'selected' : ''}`}
+                              key={s.id}
+                              onClick={() => setSessionId(s.id)}
+                            >
+                              <BookOpen size={16} />
+                              <span>
+                                <strong>{s.title}</strong>
+                                <small>
+                                  {new Date(s.createdAt).toLocaleDateString(
+                                    'nl-BE',
+                                    { day: 'numeric', month: 'long' },
+                                  )}{' '}
+                                  ·{' '}
+                                  {s.scenes.reduce(
+                                    (n, s) =>
+                                      n +
+                                      s.notes.filter((n) => n.text.trim())
+                                        .length,
+                                    0,
+                                  )}{' '}
+                                  notities
+                                </small>
+                              </span>
+                              <ChevronRight size={14} />
+                            </button>
+                          ))
+                      )}
+                    </section>
+                    <div className="session-main">
+                      {!session ? (
+                        <section className="panel welcome">
+                          <div className="welcome-art">
+                            <div className="orbit orbit-one" />
+                            <div className="orbit orbit-two" />
+                            <img src="/icon.svg" alt="" />
+                            <span className="star star-one">✦</span>
+                            <span className="star star-two">✧</span>
+                          </div>
+                          <h2>Wat wordt jullie volgende avontuur?</h2>
+                          <Button onClick={openSession} disabled={!store.ready}>
+                            <Plus size={17} /> Begin je eerste sessie
+                          </Button>
+                        </section>
+                      ) : (
+                        <>
+                          <section className="panel session-title">
+                            <div>
+                              <span className="eyebrow">
+                                {
                                   state.campaigns.find(
                                     (c) => c.id === session.campaignId,
-                                  )?.name ?? '',
-                                ),
-                                'text/markdown',
-                              )
-                            }
-                          >
-                            <Download size={17} /> Export
-                          </Button>
-                          <Button
-                            kind="ghost"
-                            title="Sessie verwijderen"
-                            disabled={busy}
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  'Deze sessie en alle bijbehorende notities verwijderen?',
-                                )
-                              )
-                                act({
-                                  type: 'delete-session',
-                                  sessionId: session.id,
-                                });
-                            }}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </section>
-                      <section className="panel notes-panel">
-                        <div className="section-heading">
-                          <h3>
-                            <BookOpen size={18} /> Afgeronde notities
-                          </h3>
-                          <span className="badge">Jij houdt de pen vast</span>
-                        </div>
-                        {session.scenes.filter((s) => s.final).length ? (
-                          session.scenes
-                            .filter((s) => s.final)
-                            .map((scene, i) => (
-                              <div className="scene" key={scene.id}>
-                                <div className="scene-label">
-                                  SCÈNE {i + 1}
-                                  <span>Afgerond</span>
-                                </div>
-                                {scene.notes.map((note) => (
-                                  <NoteEditor
-                                    key={note.id}
-                                    {...{ note, scene, session, dispatch: act }}
-                                  />
-                                ))}
-                              </div>
-                            ))
-                        ) : (
-                          <div className="quiet-empty">
-                            <Feather size={23} />
-                            <p>Hier groeit het verhaal van jullie sessie.</p>
-                            <small>
-                              Rond een scène af om je notities hier te bewaren.
-                            </small>
-                          </div>
-                        )}
-                      </section>
-                      <section className="panel notes-panel current">
-                        <div className="section-heading">
-                          <h3>
-                            <span className="live-dot" /> Lopende scène
-                          </h3>
-                          <span className="badge amber">Voorlopig</span>
-                        </div>
-                        {activeScene(session).notes.map((note) => (
-                          <NoteEditor
-                            key={note.id}
-                            note={note}
-                            scene={activeScene(session)}
-                            session={session}
-                            dispatch={act}
-                          />
-                        ))}
-                        {!activeScene(session).notes.length && (
-                          <p className="subtle scene-prompt">
-                            Wie ontmoeten jullie? Wat verandert er? Leg het
-                            eerste moment vast.
-                          </p>
-                        )}
-                        <div className="button-row">
-                          <Button
-                            kind="ghost"
-                            disabled={!store.ready}
-                            onClick={() =>
-                              act({
-                                type: 'add',
-                                sessionId: session.id,
-                                sceneId: activeScene(session).id,
-                                noteId: id(),
-                                text: '',
-                              })
-                            }
-                          >
-                            <Plus size={16} /> Zelf een notitie toevoegen
-                          </Button>
-                          <Button
-                            kind="secondary"
-                            disabled={
-                              !activeScene(session).notes.some((n) =>
-                                n.text.trim(),
-                              )
-                            }
-                            onClick={() =>
-                              act({
-                                type: 'finalize',
-                                sessionId: session.id,
-                                nextSceneId: id(),
-                              })
-                            }
-                          >
-                            <Check size={16} /> Scène afronden
-                          </Button>
-                        </div>
-                      </section>
-                      {session.conflicts.length > 0 && (
-                        <section className="panel">
-                          <h3>Voorstellen na jouw bewerking</h3>
-                          <p className="subtle">
-                            Deze resultaten kwamen binnen nadat de scène
-                            veranderde. Kies wat je wilt toevoegen.
-                          </p>
-                          {session.conflicts.map((c) => (
-                            <div className="conflict" key={c.id}>
-                              <p>{c.text}</p>
-                              <div className="button-row">
-                                <Button
-                                  kind="secondary"
-                                  onClick={() =>
-                                    act({
-                                      type: 'resolve',
-                                      sessionId: session.id,
-                                      conflictId: c.id,
-                                      accept: true,
-                                    })
-                                  }
-                                >
-                                  Toevoegen aan lopende scène
-                                </Button>
-                                <Button
-                                  kind="ghost"
-                                  onClick={() =>
-                                    act({
-                                      type: 'resolve',
-                                      sessionId: session.id,
-                                      conflictId: c.id,
-                                      accept: false,
-                                    })
-                                  }
-                                >
-                                  Verwerpen
-                                </Button>
-                              </div>
+                                  )?.name
+                                }
+                              </span>
+                              <h2>{session.title}</h2>
+                              <span className="subtle">
+                                {new Date(session.createdAt).toLocaleDateString(
+                                  'nl-BE',
+                                  {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                  },
+                                )}
+                              </span>
                             </div>
-                          ))}
-                        </section>
-                      )}
-                      <section className="recorder">
-                        <div className="recorder-top">
-                          <div
-                            className={`mic-icon ${view.status === 'listening' ? 'recording' : ''}`}
-                          >
-                            <Mic size={23} />
-                          </div>
-                          <div>
-                            <strong>
-                              {view.status === 'listening'
-                                ? 'Aan het luisteren'
-                                : view.status === 'paused'
-                                  ? 'Opname gepauzeerd'
-                                  : view.processing
-                                    ? 'Notities verwerken'
-                                    : 'Een extra paar oren aan tafel'}
-                            </strong>
-                            <p>
-                              {view.backlogMs > 0
-                                ? `${(view.backlogMs / 1000).toFixed(0)} seconden audio in de wachtrij`
-                                : view.verified
-                                  ? `${modelById(engine.modelId).name} · verwerking op dit toestel`
-                                  : 'Stel eerst een lokaal model in en test het op jouw toestel.'}
-                            </p>
-                          </div>
-                          {view.status === 'listening' && (
-                            <div className="level" aria-label="Microfoonniveau">
-                              <i style={{ width: `${view.level * 100}%` }} />
-                            </div>
-                          )}
-                        </div>
-                        {!busy && (
-                          <label className="checkbox">
-                            <input
-                              type="checkbox"
-                              checked={consent}
-                              onChange={(e) => setConsent(e.target.checked)}
-                            />{' '}
-                            Mijn tafelgenoten weten dat de microfoon
-                            meeluistert. Audio wordt uitsluitend in het
-                            werkgeheugen verwerkt.
-                          </label>
-                        )}
-                        <div className="button-row">
-                          {['listening', 'paused'].includes(view.status) ? (
-                            <>
+                            <div className="button-row">
                               <Button
+                                kind="ghost"
+                                title="Exporteer sessienotities"
                                 onClick={() =>
-                                  attempt(() =>
-                                    view.status === 'listening'
-                                      ? engine.pause()
-                                      : engine.resume(),
+                                  download(
+                                    'sessienotities.md',
+                                    markdown(
+                                      session,
+                                      state.campaigns.find(
+                                        (c) => c.id === session.campaignId,
+                                      )?.name ?? '',
+                                    ),
+                                    'text/markdown',
                                   )
                                 }
                               >
-                                {view.status === 'listening' ? (
-                                  <Pause size={17} />
-                                ) : (
-                                  <Play size={17} />
-                                )}{' '}
-                                {view.status === 'listening'
-                                  ? 'Pauzeren'
-                                  : 'Verder luisteren'}
+                                <Download size={17} /> Export
+                              </Button>
+                              <Button
+                                kind="ghost"
+                                title="Sessie verwijderen"
+                                disabled={busy}
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      'Deze sessie en alle bijbehorende notities verwijderen?',
+                                    )
+                                  )
+                                    act({
+                                      type: 'delete-session',
+                                      sessionId: session.id,
+                                    });
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          </section>
+                          <section className="panel notes-panel">
+                            <div className="section-heading">
+                              <h3>
+                                <BookOpen size={18} /> Afgeronde notities
+                              </h3>
+                              <span className="badge">
+                                Jij houdt de pen vast
+                              </span>
+                            </div>
+                            {session.scenes.filter((s) => s.final).length ? (
+                              session.scenes
+                                .filter((s) => s.final)
+                                .map((scene, i) => (
+                                  <div className="scene" key={scene.id}>
+                                    <div className="scene-label">
+                                      SCÈNE {i + 1}
+                                      <span>Afgerond</span>
+                                    </div>
+                                    {scene.notes.map((note) => (
+                                      <NoteEditor
+                                        key={note.id}
+                                        {...{
+                                          note,
+                                          scene,
+                                          session,
+                                          dispatch: act,
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                ))
+                            ) : (
+                              <div className="quiet-empty">
+                                <Feather size={23} />
+                                <p>
+                                  Hier groeit het verhaal van jullie sessie.
+                                </p>
+                                <small>
+                                  Rond een scène af om je notities hier te
+                                  bewaren.
+                                </small>
+                              </div>
+                            )}
+                          </section>
+                          <section className="panel notes-panel current">
+                            <div className="section-heading">
+                              <h3>
+                                <span className="live-dot" /> Lopende scène
+                              </h3>
+                              <span className="badge amber">Voorlopig</span>
+                            </div>
+                            {activeScene(session).notes.map((note) => (
+                              <NoteEditor
+                                key={note.id}
+                                note={note}
+                                scene={activeScene(session)}
+                                session={session}
+                                dispatch={act}
+                              />
+                            ))}
+                            {!activeScene(session).notes.length && (
+                              <p className="subtle scene-prompt">
+                                Wie ontmoeten jullie? Wat verandert er? Leg het
+                                eerste moment vast.
+                              </p>
+                            )}
+                            <div className="button-row">
+                              <Button
+                                kind="ghost"
+                                disabled={!store.ready}
+                                onClick={() =>
+                                  act({
+                                    type: 'add',
+                                    sessionId: session.id,
+                                    sceneId: activeScene(session).id,
+                                    noteId: id(),
+                                    text: '',
+                                  })
+                                }
+                              >
+                                <Plus size={16} /> Zelf een notitie toevoegen
                               </Button>
                               <Button
                                 kind="secondary"
-                                onClick={() => attempt(() => engine.stop())}
+                                disabled={
+                                  !activeScene(session).notes.some((n) =>
+                                    n.text.trim(),
+                                  )
+                                }
+                                onClick={() =>
+                                  act({
+                                    type: 'finalize',
+                                    sessionId: session.id,
+                                    nextSceneId: id(),
+                                  })
+                                }
                               >
-                                <Square size={15} /> Stoppen en verwerken
+                                <Check size={16} /> Scène afronden
                               </Button>
-                            </>
-                          ) : view.status === 'stopping' ? (
-                            <span>Resterende fragmenten verwerken…</span>
-                          ) : (
-                            <Button
-                              disabled={!view.verified || !consent || busy}
-                              onClick={() =>
-                                attempt(() =>
-                                  engine.start(session.id, settings, segments),
-                                )
-                              }
-                            >
-                              <Mic size={17} /> Start luisteren
-                            </Button>
+                            </div>
+                          </section>
+                          {session.conflicts.length > 0 && (
+                            <section className="panel">
+                              <h3>Voorstellen na jouw bewerking</h3>
+                              <p className="subtle">
+                                Deze resultaten kwamen binnen nadat de scène
+                                veranderde. Kies wat je wilt toevoegen.
+                              </p>
+                              {session.conflicts.map((c) => (
+                                <div className="conflict" key={c.id}>
+                                  <p>{c.text}</p>
+                                  <div className="button-row">
+                                    <Button
+                                      kind="secondary"
+                                      onClick={() =>
+                                        act({
+                                          type: 'resolve',
+                                          sessionId: session.id,
+                                          conflictId: c.id,
+                                          accept: true,
+                                        })
+                                      }
+                                    >
+                                      Toevoegen aan lopende scène
+                                    </Button>
+                                    <Button
+                                      kind="ghost"
+                                      onClick={() =>
+                                        act({
+                                          type: 'resolve',
+                                          sessionId: session.id,
+                                          conflictId: c.id,
+                                          accept: false,
+                                        })
+                                      }
+                                    >
+                                      Verwerpen
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </section>
                           )}
-                          {!view.verified && (
-                            <Button
-                              kind="ghost"
-                              onClick={() => setPage('models')}
-                            >
-                              Model instellen <ChevronRight size={16} />
-                            </Button>
-                          )}
-                          {busy && (
-                            <Button
-                              kind="ghost"
-                              onClick={() => engine.cancel()}
-                            >
-                              Direct stoppen en audio wissen
-                            </Button>
-                          )}
-                        </div>
-                        <small>
-                          Houd deze pagina op de voorgrond. Bij herladen gaat
-                          onverwerkte audio verloren.
-                        </small>
-                      </section>
-                    </>
-                  )}
-                  <div className="privacy-footer">
-                    <ShieldCheck size={15} />
-                    <span>
-                      Geen account. Geen cloud-AI. Jouw notities blijven in deze
-                      browser.
-                    </span>
+                          <section className="recorder">
+                            <div className="recorder-top">
+                              <div
+                                className={`mic-icon ${view.status === 'listening' ? 'recording' : ''}`}
+                              >
+                                <Mic size={23} />
+                              </div>
+                              <div>
+                                <strong>
+                                  {view.status === 'listening'
+                                    ? 'Aan het luisteren'
+                                    : view.status === 'paused'
+                                      ? 'Opname gepauzeerd'
+                                      : view.processing
+                                        ? 'Notities verwerken'
+                                        : 'Een extra paar oren aan tafel'}
+                                </strong>
+                                <p>
+                                  {view.backlogMs > 0
+                                    ? `${(view.backlogMs / 1000).toFixed(0)} seconden audio in de wachtrij`
+                                    : view.loaded
+                                      ? `${modelById(engine.modelId).name} · verwerking op dit toestel`
+                                      : 'Het geselecteerde model wordt automatisch geladen.'}
+                                </p>
+                              </div>
+                              {view.status === 'listening' && (
+                                <div
+                                  className="level"
+                                  aria-label="Microfoonniveau"
+                                >
+                                  <i
+                                    style={{ width: `${view.level * 100}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            {!busy && (
+                              <label className="checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={consent}
+                                  onChange={(e) => setConsent(e.target.checked)}
+                                />{' '}
+                                Mijn tafelgenoten weten dat de microfoon
+                                meeluistert. Audio wordt uitsluitend in het
+                                werkgeheugen verwerkt.
+                              </label>
+                            )}
+                            <div className="button-row">
+                              {['listening', 'paused'].includes(view.status) ? (
+                                <>
+                                  <Button
+                                    onClick={() =>
+                                      attempt(() =>
+                                        view.status === 'listening'
+                                          ? engine.pause()
+                                          : engine.resume(),
+                                      )
+                                    }
+                                  >
+                                    {view.status === 'listening' ? (
+                                      <Pause size={17} />
+                                    ) : (
+                                      <Play size={17} />
+                                    )}{' '}
+                                    {view.status === 'listening'
+                                      ? 'Pauzeren'
+                                      : 'Verder luisteren'}
+                                  </Button>
+                                  <Button
+                                    kind="secondary"
+                                    onClick={() => attempt(() => engine.stop())}
+                                  >
+                                    <Square size={15} /> Stoppen en verwerken
+                                  </Button>
+                                </>
+                              ) : view.status === 'stopping' ? (
+                                <span>Resterende fragmenten verwerken…</span>
+                              ) : (
+                                <Button
+                                  disabled={!consent || busy}
+                                  onClick={() =>
+                                    attempt(async () => {
+                                      await ensureModel();
+                                      await engine.start(
+                                        session.id,
+                                        settings,
+                                        segments,
+                                      );
+                                    })
+                                  }
+                                >
+                                  <Mic size={17} /> Start luisteren
+                                </Button>
+                              )}
+                              {busy && (
+                                <Button
+                                  kind="ghost"
+                                  onClick={() => engine.cancel()}
+                                >
+                                  Direct stoppen en audio wissen
+                                </Button>
+                              )}
+                            </div>
+                            <small>
+                              Houd deze pagina op de voorgrond. Bij herladen
+                              gaat onverwerkte audio verloren.
+                            </small>
+                          </section>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </>
           )}
           {page === 'models' && (
             <>
               <div className="page-heading">
-                <div>
-                  <div className="eyebrow">INTELLIGENTIE OP JOUW TOESTEL</div>
-                  <h1>
-                    Een lokale tafelgenoot<span>.</span>
-                  </h1>
-                  <p>
-                    Download één model, test het en ga daarna offline verder.
-                  </p>
-                </div>
+                <h1>Lokale modellen</h1>
               </div>
-              <div className="info-strip">
-                <ShieldCheck size={23} />
-                <p>
-                  Alleen modelbestanden worden gedownload. Audio en notities
-                  worden nooit naar een AI-dienst gestuurd. Downloads kunnen
-                  meerdere gigabytes groot zijn.
-                </p>
-              </div>
-              <div className="two-columns">
-                {models.map((m) => (
-                  <button
-                    className={`model-card panel ${selectedModel === m.id ? 'chosen' : ''}`}
-                    disabled={busy || view.loaded}
-                    key={m.id}
-                    onClick={() => {
-                      setSelectedModel(m.id);
-                      setSettings({ ...settings, thinking: 'off' });
-                    }}
-                  >
-                    <div className="model-card-top">
-                      <Cpu size={28} />
-                      <span className="badge">
-                        {m.id === 'gemma4'
-                          ? 'Eerste kandidaat'
-                          : 'Vergelijkingsmodel'}
-                      </span>
-                    </div>
-                    <h2>{m.name}</h2>
-                    <p>{m.description}</p>
-                    <dl>
-                      <dt>Downloadbudget</dt>
-                      <dd>circa {m.estimatedGB} GB</dd>
-                      <dt>Audiofragment</dt>
-                      <dd>max. {m.maxAudioSeconds} s · 16 kHz</dd>
-                      <dt>Lokale cache</dt>
-                      <dd>
-                        {cache.find((c) => c.id === m.id)?.files ?? 0} bestanden
-                      </dd>
-                    </dl>
-                    <div className="model-card-bottom">
-                      <span>
-                        {selectedModel === m.id
-                          ? 'Geselecteerd'
-                          : 'Selecteer model'}
-                      </span>
-                      {selectedModel === m.id ? (
-                        <Check size={18} />
-                      ) : (
-                        <ChevronRight size={18} />
+              <p className="subtle">
+                WebGPU{' '}
+                {caps?.webgpu && caps?.fp16
+                  ? 'beschikbaar'
+                  : 'niet beschikbaar met shader-f16 op dit toestel'}
+                .
+              </p>
+              <div className="campaign-grid">
+                {models.map((m) => {
+                  const installed = cache.find((c) => c.id === m.id);
+                  return (
+                    <section className="panel model-card" key={m.id}>
+                      <button
+                        className="model-select"
+                        aria-pressed={selectedModel === m.id}
+                        disabled={busy}
+                        onClick={() => setSelectedModel(m.id)}
+                      >
+                        <Cpu size={25} />
+                        <h2>{m.name}</h2>
+                        {selectedModel === m.id && <Check size={20} />}
+                      </button>
+                      <dl>
+                        <dt>Grootte</dt>
+                        <dd>{(modelBytes / 1e9).toFixed(2)} GB</dd>
+                        <dt>Audio</dt>
+                        <dd>Ja · max. {m.maxAudioSeconds} seconden</dd>
+                        <dt>Status</dt>
+                        <dd>
+                          {installed?.installed
+                            ? `Gedownload · ${(installed.bytes / 1e9).toFixed(2)} GB`
+                            : installed?.bytes
+                              ? `Gedeeltelijk · ${(installed.bytes / 1e9).toFixed(2)} GB`
+                              : 'Niet gedownload'}
+                        </dd>
+                        <dt>Versie</dt>
+                        <dd>
+                          {installed?.update
+                            ? 'Update beschikbaar'
+                            : installed?.installed
+                              ? 'Actueel voor deze appversie'
+                              : m.revision.slice(0, 8)}
+                        </dd>
+                      </dl>
+                      {!installed?.installed && (
+                        <Button
+                          disabled={busy || !online}
+                          onClick={() => attempt(() => load(true, true))}
+                        >
+                          <Download size={17} />
+                          {installed?.update
+                            ? 'Bijwerken'
+                            : installed?.bytes
+                              ? 'Download hervatten'
+                              : 'Downloaden'}
+                        </Button>
                       )}
-                    </div>
-                  </button>
-                ))}
+                      {installed?.installed && (
+                        <Button
+                          kind="ghost"
+                          disabled={busy}
+                          onClick={() =>
+                            attempt(async () => {
+                              engine.cancel();
+                              await clearModelCache();
+                              setCache(await cacheStatus());
+                            })
+                          }
+                        >
+                          <Trash2 size={16} /> Verwijderen
+                        </Button>
+                      )}
+                    </section>
+                  );
+                })}
               </div>
-              <section className="panel">
-                <div className="section-heading">
-                  <h3>Maak {spec.name} klaar</h3>
-                  <span className="badge">
-                    Transformers.js {RUNTIME_VERSION}
-                  </span>
-                </div>
-                <div className="settings-grid">
-                  <label>
-                    Uitvoering
-                    <select
-                      value={provider}
-                      disabled={busy || view.loaded}
-                      onChange={(e) =>
-                        setProvider(e.target.value as 'webgpu' | 'wasm')
-                      }
-                    >
-                      <option value="webgpu">
-                        WebGPU · grafische processor
-                      </option>
-                      <option value="wasm">
-                        WebAssembly · CPU (experimenteel, langzaam)
-                      </option>
-                    </select>
-                  </label>
-                  <div className="capability">
-                    <span
-                      className={`status-dot ${caps?.webgpu ? '' : 'offline'}`}
-                    />
-                    <span>
-                      {caps?.webgpu
-                        ? 'WebGPU-adapter gevonden'
-                        : 'Geen WebGPU-adapter gevonden'}
-                      <small>
-                        {caps?.fp16
-                          ? '16-bit GPU-berekeningen beschikbaar'
-                          : 'Gemma WebGPU vereist shader-f16'}
-                      </small>
-                    </span>
-                  </div>
-                </div>
-                <p className="subtle">
-                  {dtypeLabel(selectedModel, provider)}. Downloadgrootte is geen
-                  maat voor benodigd werkgeheugen. Cachebestanden alleen
-                  bewijzen nog geen offline gereedheid.
-                </p>
-                <div className="button-row">
-                  <Button
-                    disabled={
-                      busy ||
-                      view.loaded ||
-                      !online ||
-                      (provider === 'webgpu' &&
-                        (!caps?.webgpu ||
-                          (selectedModel === 'gemma4' && !caps?.fp16)))
-                    }
-                    onClick={() => attempt(() => load(true))}
-                  >
-                    <Download size={17} /> Downloaden en laden
-                  </Button>
-                  <Button
-                    kind="secondary"
-                    disabled={
-                      busy ||
-                      view.loaded ||
-                      (provider === 'webgpu' && !caps?.webgpu)
-                    }
-                    onClick={() => attempt(() => load(false))}
-                  >
-                    <HardDrive size={17} /> Laden uit lokale cache
-                  </Button>
-                  {(view.loaded || view.status === 'loading') && (
-                    <Button kind="ghost" onClick={() => engine.cancel()}>
-                      Model ontladen / annuleren
-                    </Button>
-                  )}
-                </div>
-                {view.status === 'loading' && (
-                  <div className="progress-area" role="status">
-                    <progress max={100} value={view.percent} />
-                    <p>{view.progress}</p>
-                  </div>
-                )}
-                {view.loaded && (
-                  <div className="success">
-                    <Check size={18} />
-                    <span>
-                      Model geladen.{' '}
-                      {view.verified
-                        ? 'De gecontroleerde configuratie is beschikbaar voor sessies.'
-                        : 'Voer een korte audiotest uit en controleer de notities.'}
-                    </span>
-                    <Button kind="ghost" onClick={() => setPage('test')}>
-                      Naar testmodus <ChevronRight size={16} />
-                    </Button>
-                  </div>
-                )}
-                <details>
-                  <summary>Modelherkomst en licentie</summary>
-                  <dl>
-                    <dt>Repository</dt>
-                    <dd>{spec.repo}</dd>
-                    <dt>Vaste revisie</dt>
-                    <dd>{spec.revision}</dd>
-                    <dt>Licentie</dt>
-                    <dd>{spec.license}</dd>
-                  </dl>
-                  <a
-                    href={`https://huggingface.co/${spec.repo}/tree/${spec.revision}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Modelbestanden en voorwaarden bekijken ↗
-                  </a>
-                </details>
-              </section>
-              <section className="panel storage-panel">
-                <div>
-                  <h3>
-                    <HardDrive size={18} /> Opslag op dit toestel
-                  </h3>
-                  <p>
-                    {caps?.storage?.quota
-                      ? `${((caps.storage.usage ?? 0) / 1e9).toFixed(2)} GB gebruikt van ${(caps.storage.quota / 1e9).toFixed(1)} GB beschikbaar browserquotum.`
-                      : 'Je browser bepaalt de beschikbare opslagruimte.'}{' '}
-                    De browser kan bestanden verwijderen bij ruimtegebrek.
-                  </p>
-                  <p>
-                    {shellReady
-                      ? 'App-shell offline opgeslagen. Test modelherstart afzonderlijk zonder netwerk.'
-                      : 'De app-shell is nog niet bevestigd voor offline gebruik. Offline caching werkt in de productiebuild.'}
-                  </p>
-                </div>
-                <Button
-                  kind="secondary"
-                  disabled={busy || view.loaded}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        'Alle gedownloade modellen wissen? Je sessienotities blijven bewaard.',
-                      )
-                    )
-                      attempt(async () => {
-                        await clearModelCache();
-                        setCache(await cacheStatus());
-                      });
-                  }}
-                >
-                  <Trash2 size={16} /> Modelcache wissen
-                </Button>
-              </section>
-              <p className="footnote">
-                Voxtral en andere engines zijn toekomstige adapters. Geen van
-                deze modellen heeft hier een bewezen realtime- of geheugenbudget
-                op Pixel 6a.
+              <p className="subtle">
+                {shellReady
+                  ? 'App beschikbaar voor offline gebruik.'
+                  : 'Offline appbestanden worden voorbereid.'}{' '}
+                Modellen laden automatisch bij een opname of test.
               </p>
             </>
           )}
@@ -1222,39 +1186,9 @@ export default function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">EERST METEN, DAN VERTROUWEN</div>
-                  <h1>
-                    Test aan jouw tafel<span>.</span>
-                  </h1>
-                  <p>
-                    Vergelijk kwaliteit en snelheid met een eigen audiofragment.
-                  </p>
+                  <h1>Testlaboratorium</h1>
                 </div>
-                <Button
-                  kind="secondary"
-                  onClick={() =>
-                    download(
-                      'diagnostiek.json',
-                      JSON.stringify(diagnostics(), null, 2),
-                      'application/json',
-                    )
-                  }
-                >
-                  <Download size={17} /> Diagnostiek
-                </Button>
               </div>
-              {!view.loaded && (
-                <div className="info-strip">
-                  <Cpu size={21} />
-                  <p>
-                    Laad eerst een model bij Lokale modellen. Testen gebruikt
-                    dezelfde audiopipeline als een live sessie.
-                  </p>
-                  <Button kind="ghost" onClick={() => setPage('models')}>
-                    Model kiezen <ChevronRight size={16} />
-                  </Button>
-                </div>
-              )}
               <section className="panel">
                 <div className="section-heading">
                   <h3>
@@ -1305,7 +1239,7 @@ export default function App() {
                     Taakstrategie
                     <select
                       value={settings.strategy}
-                      disabled={busy || view.verified}
+                      disabled={busy}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
@@ -1326,7 +1260,7 @@ export default function App() {
                     Uitvoerformaat
                     <select
                       value={settings.protocol}
-                      disabled={busy || view.verified}
+                      disabled={busy}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
@@ -1343,11 +1277,7 @@ export default function App() {
                     Thinking
                     <select
                       value={settings.thinking}
-                      disabled={
-                        busy ||
-                        view.verified ||
-                        !modelById(engine.modelId).thinking
-                      }
+                      disabled={busy || !modelById(engine.modelId).thinking}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
@@ -1375,7 +1305,7 @@ export default function App() {
                         min={2}
                         max={30}
                         value={segments.chunkSeconds}
-                        disabled={busy || view.verified}
+                        disabled={busy}
                         onChange={(e) =>
                           setSegments({
                             ...segments,
@@ -1392,7 +1322,7 @@ export default function App() {
                         max={2000}
                         step={100}
                         value={segments.silenceMs}
-                        disabled={busy || view.verified}
+                        disabled={busy}
                         onChange={(e) =>
                           setSegments({
                             ...segments,
@@ -1409,7 +1339,7 @@ export default function App() {
                         max={2000}
                         step={100}
                         value={segments.overlapMs}
-                        disabled={busy || view.verified}
+                        disabled={busy}
                         onChange={(e) =>
                           setSegments({
                             ...segments,
@@ -1426,7 +1356,7 @@ export default function App() {
                         max={0.2}
                         step={0.001}
                         value={segments.threshold}
-                        disabled={busy || view.verified}
+                        disabled={busy}
                         onChange={(e) =>
                           setSegments({
                             ...segments,
@@ -1443,7 +1373,7 @@ export default function App() {
                         max={1024}
                         step={64}
                         value={settings.maxTokens}
-                        disabled={busy || view.verified}
+                        disabled={busy}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
@@ -1460,7 +1390,7 @@ export default function App() {
                         max={16000}
                         step={500}
                         value={settings.contextChars}
-                        disabled={busy || view.verified}
+                        disabled={busy}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
@@ -1473,17 +1403,17 @@ export default function App() {
                   <p className="footnote">
                     Energie-VAD is een meetbare baseline. Silero, adaptieve
                     thinking en echte tokenizerbudgetten zijn nog niet
-                    geïmplementeerd. Ontlaad het model om een bevestigde
-                    configuratie te wijzigen.
+                    geïmplementeerd.
                   </p>
                 </details>
                 <div className="button-row">
                   <Button
-                    disabled={!file || !view.loaded || busy}
+                    disabled={!file || busy}
                     onClick={() =>
-                      attempt(() =>
-                        engine.test(file!, settings, segments, mode),
-                      )
+                      attempt(async () => {
+                        await ensureModel();
+                        await engine.test(file!, settings, segments, mode);
+                      })
                     }
                   >
                     <Play size={17} /> Start test
@@ -1518,14 +1448,12 @@ export default function App() {
                   </p>
                   {view.canVerify && !view.verified && (
                     <Button onClick={() => engine.verify()}>
-                      <Check size={17} /> Ik heb de notities gecontroleerd —
-                      gebruik deze configuratie
+                      <Check size={17} /> Ik heb de notities gecontroleerd
                     </Button>
                   )}
                   {view.verified && (
                     <div className="success">
-                      <Check size={18} /> Configuratie bevestigd voor deze
-                      geladen modelsessie.
+                      <Check size={18} /> Kwaliteit beoordeeld voor deze proef.
                     </div>
                   )}
                 </section>
@@ -1622,23 +1550,9 @@ export default function App() {
           {page === 'campaigns' && (
             <>
               <div className="page-heading">
-                <div>
-                  <div className="eyebrow">NAMEN DIE BLIJVEN HANGEN</div>
-                  <h1>
-                    Jullie eigen wereld<span>.</span>
-                  </h1>
-                  <p>
-                    Geef ieder avontuur een thuis en houd bijzondere namen bij.
-                  </p>
-                </div>
-                <Button
-                  disabled={busy || !store.ready}
-                  onClick={() => {
-                    setNewCampaign('');
-                    setModal('campaign');
-                  }}
-                >
-                  <Plus size={17} /> Nieuwe campagne
+                <h1>Campagne-instellingen</h1>
+                <Button kind="secondary" onClick={() => setPage('sessions')}>
+                  Terug naar sessies
                 </Button>
               </div>
               {!campaign ? (
@@ -1653,37 +1567,42 @@ export default function App() {
               ) : (
                 <>
                   <section className="panel">
-                    <div className="settings-grid">
+                    <form
+                      className="campaign-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        act({
+                          type: 'campaign-edit',
+                          id: campaign.id,
+                          name: campaignName,
+                          description,
+                        });
+                      }}
+                    >
                       <label>
-                        Campagne
-                        <select
-                          value={campaign.id}
-                          disabled={busy}
-                          onChange={(e) => setCampaignId(e.target.value)}
-                        >
-                          {state.campaigns.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
+                        Naam van de campagne
+                        <input
+                          required
+                          maxLength={100}
+                          value={campaignName}
+                          onChange={(e) => setCampaignName(e.target.value)}
+                        />
                       </label>
-                      <div className="campaign-count">
-                        <strong>
-                          {
-                            state.sessions.filter(
-                              (s) => s.campaignId === campaign.id,
-                            ).length
-                          }
-                        </strong>
-                        <span>sessies in dit avontuur</span>
-                      </div>
-                    </div>
+                      <label>
+                        Korte beschrijving
+                        <textarea
+                          maxLength={1000}
+                          rows={3}
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                        />
+                      </label>
+                      <Button type="submit">Opslaan</Button>
+                    </form>
                     <h3>Campagnewoordenboek</h3>
                     <p className="subtle">
-                      Bevestig de schrijfwijze van NPC's, plaatsen en
-                      voorwerpen. Relevante namen gaan mee als context;
-                      bestaande notities worden nooit automatisch vervangen.
+                      Voeg belangrijke woorden uit je campagne toe zodat ze
+                      beter herkend worden.
                     </p>
                     <form
                       className="inline-form"
@@ -1735,9 +1654,8 @@ export default function App() {
                   <section className="panel">
                     <h3>Namen uit eerdere verhalen</h3>
                     <p className="subtle">
-                      Plak een oud sessieverslag. Deze eenvoudige
-                      hoofdletteranalyse stelt kandidaten voor; jij beslist wat
-                      een naam is.
+                      Plak bestaande notities om snel woorden toe te voegen.
+                      Kies hieronder welke je wilt bewaren.
                     </p>
                     <label>
                       Vorig sessieverslag
@@ -1795,8 +1713,16 @@ export default function App() {
                   ? 'Alles lokaal opgeslagen'
                   : 'Lokale opslag openen…'}
           </span>
-          <span>Gemaakt voor verhalen die het onthouden waard zijn.</span>
-          <span>✦</span>
+          <span
+            className="build-version"
+            title={import.meta.env.VITE_BUILD_COMMIT}
+          >
+            Build{' '}
+            {import.meta.env.VITE_BUILD_COMMIT?.slice(0, 8) || 'development'}
+          </span>
+          <button className="icon-button" onClick={exportLogs}>
+            <Download size={16} /> Logs exporteren
+          </button>
         </footer>
       </div>
       {modal && (
@@ -1810,9 +1736,7 @@ export default function App() {
           >
             <div className="section-heading">
               <h2 id="modal-title">
-                {modal === 'session'
-                  ? 'Een nieuw avontuur'
-                  : 'Een nieuwe campagne'}
+                {modal === 'session' ? 'Nieuwe sessie' : 'Een nieuwe campagne'}
               </h2>
               <button
                 className="icon-button"

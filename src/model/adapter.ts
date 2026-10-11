@@ -1,3 +1,4 @@
+import { record, recordError } from '../core/diagnostics';
 import type {
   AudioModelAdapter,
   ProcessingRequest,
@@ -7,6 +8,18 @@ export class WorkerAdapter implements AudioModelAdapter {
   onFatal: (message: string) => void = () => {};
   private worker: Worker | null = null;
   private counter = 0;
+  private timer?: ReturnType<typeof setTimeout>;
+  private lastStage = '';
+  private watch() {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      const message =
+        'Het model reageert vier minuten niet meer. Exporteer de logs en probeer opnieuw.';
+      recordError('model_timeout', Error(message));
+      this.unload();
+      this.onFatal(message);
+    }, 240000);
+  }
   private pending = new Map<
     number,
     {
@@ -23,13 +36,29 @@ export class WorkerAdapter implements AudioModelAdapter {
     this.worker.onmessage = ({ data }) => {
       const p = this.pending.get(data.id);
       if (!p) return;
+      this.watch();
+      if (data.diagnostic) {
+        record('model_stage', data.diagnostic);
+        return;
+      }
       if (data.progress) {
+        const stage = `${data.progress.label}:${Math.floor((data.progress.percent ?? 0) / 10)}`;
+        if (stage !== this.lastStage) {
+          record('model_progress', {
+            stage: data.progress.label,
+            percent: data.progress.percent ?? -1,
+          });
+          this.lastStage = stage;
+        }
         p.progress?.(data.progress.label, data.progress.percent);
         return;
       }
+      clearTimeout(this.timer);
       this.pending.delete(data.id);
-      if (data.error) p.reject(Error(data.error));
-      else p.resolve(data.result);
+      if (data.error) {
+        recordError('model_worker', Error(data.error));
+        p.reject(Error(data.error));
+      } else p.resolve(data.result);
     };
     this.worker.onerror = (event) => {
       for (const p of this.pending.values())
@@ -59,18 +88,20 @@ export class WorkerAdapter implements AudioModelAdapter {
         reject,
         progress,
       });
+      this.watch();
       this.worker!.postMessage({ id, ...data }, transfers);
     });
   }
   async load(
     modelId: string,
-    provider: 'webgpu' | 'wasm',
+    provider: 'webgpu',
     download: boolean,
     progress: (label: string, percent?: number) => void,
+    installOnly = false,
   ) {
     this.unload();
     await this.call(
-      { type: 'load', modelId, provider, download },
+      { type: 'load', modelId, provider, download, installOnly },
       [],
       progress,
     );
@@ -83,6 +114,7 @@ export class WorkerAdapter implements AudioModelAdapter {
     ]);
   }
   unload() {
+    clearTimeout(this.timer);
     this.worker?.terminate();
     this.worker = null;
     for (const p of this.pending.values())

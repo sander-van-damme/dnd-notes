@@ -29,6 +29,7 @@ export interface Campaign {
   id: string;
   name: string;
   glossary: string[];
+  description?: string;
 }
 export interface JournalEvent {
   seq: number;
@@ -120,7 +121,7 @@ export interface ProcessingResult {
 export interface AudioModelAdapter {
   load(
     modelId: string,
-    provider: 'webgpu' | 'wasm',
+    provider: 'webgpu',
     download: boolean,
     progress: (label: string, percent?: number) => void,
   ): Promise<void>;

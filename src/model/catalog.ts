@@ -1,3 +1,4 @@
+import assets from './assets.json';
 export const MODEL_CACHE = 'dnd-models-v1';
 export const RUNTIME_VERSION = '4.3.1';
 export const models = [
@@ -14,31 +15,13 @@ export const models = [
     description:
       'Eerste kandidaat uit de blauwdruk. Multimodaal; kwaliteit en snelheid op jouw toestel te testen.',
   },
-  {
-    id: 'ultravox',
-    name: 'Ultravox 1B',
-    repo: 'onnx-community/ultravox-v0_5-llama-3_2-1b-ONNX',
-    revision: '1ccaedd19b01bc50b5257800ea8b90f53a5cbffa',
-    license: 'MIT (conversie); Llama 3.2-voorwaarden voor basismodel',
-    estimatedGB: 1.6,
-    maxAudioSeconds: 30,
-    sampleRate: 16000,
-    thinking: false,
-    description:
-      'Kleinere audiokandidaat. Geen thinkingmodus; Nederlandse notitiekwaliteit te testen.',
-  },
 ] as const;
 export const modelById = (id: string) => {
   const m = models.find((m) => m.id === id);
   if (!m) throw Error('Onbekend model.');
   return m;
 };
-export const dtypeLabel = (id: string, provider: string) =>
-  id === 'ultravox'
-    ? 'audio q4 / embedding q8 / decoder q4'
-    : provider === 'webgpu'
-      ? 'encoders fp16 / decoder + embedding q4f16'
-      : 'encoders q4 / decoder + embedding q4';
+export const dtypeLabel = () => 'encoders fp16 / decoder + embedding q4f16';
 export async function capabilities() {
   const gpu = (
     navigator as Navigator & {
@@ -60,15 +43,54 @@ export async function capabilities() {
     storage: await navigator.storage?.estimate(),
   };
 }
+export const modelAssets = assets.gemma4.filter((asset) =>
+  /onnx\/(audio_encoder_fp16|vision_encoder_fp16|embed_tokens_q4f16|decoder_model_merged_q4f16)\.onnx(?:_data)?$/.test(
+    asset.path,
+  ),
+);
+export const metadataFiles = [
+  'config.json',
+  'generation_config.json',
+  'preprocessor_config.json',
+  'processor_config.json',
+  'tokenizer.json',
+  'tokenizer_config.json',
+  'chat_template.jinja',
+];
+export const modelFiles = [...modelAssets.map((a) => a.path), ...metadataFiles];
+export const modelBytes = modelAssets.reduce((sum, a) => sum + a.size, 0);
+export const modelUrl = (path: string) =>
+  `https://huggingface.co/${models[0].repo}/resolve/${models[0].revision}/${path}`;
 export async function cacheStatus() {
   const cache = await caches.open(MODEL_CACHE),
     keys = await cache.keys();
-  return models.map((model) => ({
-    id: model.id,
-    files: keys.filter((k) =>
-      k.url.includes(`${model.repo}/resolve/${model.revision}/`),
-    ).length,
-  }));
+  let bytes = 0,
+    files = 0;
+  for (const path of modelFiles) {
+    const response = await cache.match(modelUrl(path));
+    const asset = modelAssets.find((a) => a.path === path);
+    if (
+      response &&
+      (!asset || Number(response.headers.get('content-length')) === asset.size)
+    ) {
+      files++;
+      bytes += Number(response.headers.get('content-length')) || 0;
+    }
+  }
+  const old = keys.some(
+    (k) =>
+      k.url.includes(`${models[0].repo}/resolve/`) &&
+      !k.url.includes(`/resolve/${models[0].revision}/`),
+  );
+  return [
+    {
+      id: 'gemma4',
+      files,
+      bytes,
+      installed: files === modelFiles.length,
+      update: old && files !== modelFiles.length,
+    },
+  ];
 }
 export async function clearModelCache() {
   await caches.delete(MODEL_CACHE);

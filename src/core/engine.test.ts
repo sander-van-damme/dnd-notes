@@ -63,8 +63,8 @@ it('een oude laadfout overschrijft een later geladen model niet', async () => {
     .mockImplementationOnce(() => new Promise((_, r) => (reject = r)))
     .mockResolvedValueOnce(undefined);
   const engine = new Engine(new Store());
-  const old = engine.load('gemma4', 'wasm', false);
-  await engine.load('ultravox', 'wasm', false);
+  const old = engine.load('gemma4', 'webgpu', false);
+  await engine.load('gemma4', 'webgpu', false);
   reject(Error('oude worker'));
   await old;
   expect(engine.view.loaded).toBe(true);

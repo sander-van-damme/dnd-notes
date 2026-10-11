@@ -34,14 +34,21 @@ export function verifiedResponse(
       },
     }),
   );
+  const headers = new Headers(response.headers);
+  headers.set('content-length', String(asset.size));
+  headers.delete('content-encoding');
   return new Response(stream, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers,
   });
 }
-export async function verifyCachedResponse(response: Response, asset: Asset) {
-  const reader = verifiedResponse(response, asset).body!.getReader();
+export async function verifyCachedResponse(
+  response: Response,
+  asset: Asset,
+  progress?: (bytes: number) => void,
+) {
+  const reader = verifiedResponse(response, asset, progress).body!.getReader();
   while (!(await reader.read()).done) {
     /* Consume in bounded chunks without a second model buffer. */
   }
