@@ -4,7 +4,7 @@ De technische blauwdruk blijft de productrichting. Deze implementatie is een tes
 
 ## Herziening na gebruikerstest
 
-- Avonturenboek is de enige hoofdnavigatie: campagne kiezen/maken, daarna sessies. Campagne-instellingen bevatten naam, beschrijving en woordenboek. Globale model- en testinstellingen staan achter het instellingenicoon.
+- Een smalle iconenbalk opent notities of instellingen. Naast de balk staan de campagneselectie en sessielogs; op mobiel klapt deze lijst open. Campagne-instellingen bevatten naam, beschrijving en woordenboek. De instellingenpagina toont direct modelkeuze en logexport, met het testlaboratorium als subpagina.
 - Grotere tekst en minder herhaalde copy; iedere pagina toont de buildcommit en een logexportknop.
 - Alleen Gemma 4 E2B via WebGPU. Ultravox en CPU-inferentie zijn verwijderd. De oudere Ultravox-metingen hieronder blijven historische onderbouwing voor die beslissing.
 - Automatisch laden bij opname/test, zonder verplichte kwaliteitstest vooraf; een geslaagde test ontlaadt het model niet. Menselijke controle blijft nodig.
@@ -47,7 +47,7 @@ Deze onderdelen zijn niet stilzwijgend als voltooid gemarkeerd. De app bevat gee
 ## Uitgevoerde controles
 
 - Productiebuild, ESLint, Prettier en 31 unit-/integratietests geslaagd.
-- Zes Chromium-browsertests geslaagd: offline notities, campagne-instellingen en woordenboek, mobiele weergave, modelhergebruik na tests, eerste opname zonder voorafgaande test en logexport bij laadfouten. Modelgerelateerde browsertests gebruiken expliciete workerstubs en bewijzen geen inferentiekwaliteit.
+- Zeven Chromium-browsertests geslaagd: offline notities, campagne-instellingen en woordenboek, mobiele weergave, modelhergebruik na tests, eerste opname zonder voorafgaande test logexport bij laadfouten en de navigatie tussen sessielijst, instellingen en testsubpagina. Modelgerelateerde browsertests gebruiken expliciete workerstubs en bewijzen geen inferentiekwaliteit.
 - Twee echte Ultravox-runs met gepinde gewichten in een normaal Chromium 154-profiel, WASM op één thread, q4-audio/decoder en q8-embeddings, 128 uitvoertokens per aanroep, markers en throughput. Offline herladen en beide inferentieaanroepen slaagden; de inhoudelijke beoordelingen faalden zoals hierboven beschreven.
 - Het 13-secondenfragment kwam uit het publieke Transformers.js-voorbeeldbestand `Xenova/transformers.js-docs/resolve/main/mlk.wav`; het is Engelstalig en geen Nederlandse D&D-benchmark. SHA-256 van de gedecodeerde PCM: `95a621f5f15d1322c44b9b55725d837477288601477fbae2c670b8aff4c3ff66`. Audio en modelgewichten staan niet in de repository.
 - Gemma-preprocessing met gepinde tokenizer/processorbestanden gecontroleerd op één seconde synthetische stilte; dit bewijst geen Gemma-inferentie.

@@ -1590,3 +1590,173 @@ main {
     gap: 12px;
   }
 }
+
+/* Compact navigation rail with a dedicated session browser. */
+.icon-rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 64px;
+  z-index: 50;
+  background: #eef0e9;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 8px;
+}
+.icon-rail > img {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 16px;
+}
+.icon-rail button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: var(--ink);
+  background: transparent;
+}
+.icon-rail button:hover,
+.icon-rail button[aria-current] {
+  background: #dce3d6;
+}
+.session-browser {
+  position: fixed;
+  inset: 0 auto 0 64px;
+  width: 280px;
+  padding: 26px 14px;
+  border-right: 1px solid var(--border);
+  background: #fafaf6;
+  overflow-y: auto;
+  z-index: 40;
+}
+.browser-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 24px;
+  font-size: 20px;
+}
+.browser-campaign {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 24px;
+}
+.browser-campaign select {
+  width: 100%;
+  min-width: 0;
+}
+.browser-hint {
+  padding: 0 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.session-browser .session-list {
+  display: block;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+.session-browser .session-item {
+  border-radius: 8px;
+  width: 100%;
+  padding: 14px 10px;
+}
+.session-browser .panel-label {
+  padding: 0 10px;
+  margin-bottom: 14px;
+}
+.session-browser .session-item strong {
+  overflow-wrap: anywhere;
+}
+.app-shell > .workspace {
+  margin-left: 64px;
+  width: calc(100% - 64px);
+  min-width: 0;
+}
+.app-shell.with-sessions > .workspace {
+  margin-left: 344px;
+  width: calc(100% - 344px);
+}
+.notes-layout {
+  display: block;
+}
+.session-toggle,
+.session-backdrop,
+.browser-close {
+  display: none;
+}
+.settings-section-title {
+  margin-bottom: 14px;
+}
+.settings-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-top: 28px;
+}
+.settings-link h2 {
+  font-size: 24px;
+}
+.settings-link p {
+  margin-top: 8px;
+  color: var(--muted);
+}
+@media (max-width: 1000px) {
+  .session-browser {
+    display: none;
+    width: min(280px, calc(100vw - 64px));
+  }
+  .session-browser.open {
+    display: block;
+  }
+  .app-shell.with-sessions > .workspace {
+    margin-left: 64px;
+    width: calc(100% - 64px);
+  }
+  .session-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: transparent;
+    color: var(--ink);
+  }
+  .browser-close {
+    display: flex;
+  }
+  .session-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0 0 0 64px;
+    background: #0004;
+    z-index: 35;
+  }
+}
+@media (max-width: 700px) {
+  .app-shell main {
+    padding: 24px 16px;
+  }
+  .app-shell .page-heading {
+    padding-right: 0;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .app-shell h1 {
+    font-size: 30px;
+    overflow-wrap: anywhere;
+  }
+  .settings-link {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .app-shell .page-footer {
+    padding: 18px 16px;
+  }
+}

@@ -34,8 +34,7 @@ async function session(page: Page, name: string) {
   await page.getByRole('button', { name: 'Sessie aanmaken' }).click();
 }
 async function settings(page: Page, name: string) {
-  const menu = page.getByRole('button', { name: 'Instellingen', exact: true });
-  if ((await menu.getAttribute('aria-expanded')) !== 'true') await menu.click();
+  await page.getByRole('button', { name: 'Instellingen', exact: true }).click();
   await page.getByRole('button', { name, exact: true }).click();
 }
 test('campagne, bewerken, scène afronden, herladen en offline sessienotities', async ({
@@ -328,4 +327,73 @@ test('laadfout is zichtbaar en logexport bevat build en foutdetails zonder notit
   expect(text).toContain('embed_tokens_q4f16.onnx_data');
   expect(text).not.toContain('Geheime campagnenaam');
   expect(text).not.toContain('Geheime sessienaam');
+});
+
+test('iconenbalk, sessielijst en instellingen met testsubpagina', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Hoofdnavigatie' })
+      .getByRole('button'),
+  ).toHaveCount(2);
+  await campaign(page, 'De vallei');
+  await session(page, 'Eerste tocht');
+  await session(page, 'Tweede tocht');
+  const list = page.getByRole('region', { name: 'Sessielogs' });
+  await expect(list.getByRole('button')).toHaveCount(2);
+  await list.getByRole('button', { name: /Eerste tocht/ }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Eerste tocht' }),
+  ).toBeVisible();
+  const sidebar = await page
+    .getByRole('complementary', { name: 'Campagnes en sessies' })
+    .boundingBox();
+  const editor = await page.locator('.session-main').boundingBox();
+  expect(sidebar!.x).toBe(64);
+  expect(editor!.x).toBeGreaterThan(sidebar!.x + sidebar!.width);
+  await page.getByRole('button', { name: 'Instellingen', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Instellingen', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Lokale modellen', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Logs exporteren', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Audiofragment kiezen')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Testlaboratorium', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Testlaboratorium', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Terug naar instellingen' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Lokale modellen', exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Avonturenboek', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Eerste tocht' }),
+  ).toBeVisible();
+  await page.screenshot({ path: '/tmp/dnd-rail-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Sessielijst openen' }).click();
+  await list.getByRole('button', { name: /Tweede tocht/ }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Tweede tocht' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('complementary', { name: 'Campagnes en sessies' }),
+  ).toBeHidden();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({ path: '/tmp/dnd-rail-mobile.png', fullPage: true });
 });

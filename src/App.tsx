@@ -27,7 +27,7 @@ import {
   Settings2,
   CircleHelp,
   Dices,
-  Menu,
+  PanelLeft,
 } from 'lucide-react';
 import { store } from './core/store';
 import { activeScene, id, markdown } from './core/state';
@@ -68,12 +68,6 @@ const defaults: InferenceSettings = {
   contextChars: 6000,
 };
 type Page = 'sessions' | 'models' | 'test' | 'campaigns';
-const labels: Record<Page, string> = {
-  sessions: 'Avonturenboek',
-  models: 'Lokale modellen',
-  test: 'Testlaboratorium',
-  campaigns: 'Campagne-instellingen',
-};
 function Button({
   children,
   onClick,
@@ -282,7 +276,6 @@ export default function App() {
     [shellReady, setShellReady] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gemma4');
   const provider = 'webgpu' as const;
-  const [globalSettings, setGlobalSettings] = useState(false);
   const [campaignName, setCampaignName] = useState(''),
     [description, setDescription] = useState('');
   const [caps, setCaps] = useState<Awaited<ReturnType<typeof capabilities>>>(),
@@ -511,78 +504,154 @@ export default function App() {
   }
   const errorText = store.error || error || view.error;
   return (
-    <div className="app-shell">
-      <aside className={`sidebar ${mobileNav ? 'open' : ''}`}>
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
+    <div
+      className={`app-shell ${page === 'sessions' || page === 'campaigns' ? 'with-sessions' : ''}`}
+    >
+      <nav className="icon-rail" aria-label="Hoofdnavigatie">
+        <img src="/icon.svg" alt="Notulist" />
+        <button
+          aria-label="Avonturenboek"
+          title="Notities"
+          aria-current={
+            page === 'sessions' || page === 'campaigns' ? 'page' : undefined
+          }
+          onClick={() => {
             setPage('sessions');
+            setMobileNav(false);
           }}
         >
-          <img src="/icon.svg" alt="" />
-          <span>Notulist</span>
-        </a>
-        <div className="sidebar-rule" />
-        <nav aria-label="Hoofdnavigatie">
-          <button
-            className="nav-item active"
-            onClick={() => {
-              setPage('sessions');
-              setMobileNav(false);
-            }}
-          >
-            <BookOpen size={19} /> Avonturenboek
-          </button>
-        </nav>
-        <div className="global-settings">
-          <button
-            className="icon-button"
-            aria-label="Instellingen"
-            aria-expanded={globalSettings}
-            onClick={() => setGlobalSettings(!globalSettings)}
-          >
-            <Settings2 size={22} />
-          </button>
-          {globalSettings && (
-            <nav aria-label="Instellingen">
-              {(['models', 'test'] as const).map((key) => (
-                <button
-                  key={key}
-                  className="nav-item"
-                  onClick={() => {
-                    setPage(key);
-                    setMobileNav(false);
-                  }}
-                >
-                  {labels[key]}
-                </button>
-              ))}
-              <button className="nav-item" onClick={exportLogs}>
-                <Download size={17} /> Logs exporteren
-              </button>
-            </nav>
-          )}
-        </div>
-        <div className="sidebar-bottom">
-          <div className="privacy-mark">
-            <ShieldCheck size={20} />
-            <div>
-              <strong>Jouw verhaal blijft van jou.</strong>
-              <p>Verwerking gebeurt op dit toestel.</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-      <div className="workspace">
-        <button
-          className="mobile-menu"
-          aria-label="Menu openen"
-          onClick={() => setMobileNav(!mobileNav)}
-        >
-          <Menu />
+          <BookOpen size={22} />
         </button>
+        <button
+          aria-label="Instellingen"
+          title="Instellingen"
+          aria-current={
+            page === 'models' || page === 'test' ? 'page' : undefined
+          }
+          onClick={() => {
+            setPage('models');
+            setMobileNav(false);
+          }}
+        >
+          <Settings2 size={22} />
+        </button>
+      </nav>
+      {(page === 'sessions' || page === 'campaigns') && (
+        <>
+          {mobileNav && (
+            <button
+              className="session-backdrop"
+              aria-label="Sessielijst sluiten"
+              onClick={() => setMobileNav(false)}
+            />
+          )}
+          <aside
+            className={`session-browser ${mobileNav ? 'open' : ''}`}
+            aria-label="Campagnes en sessies"
+          >
+            <div className="browser-heading">
+              <strong>Notities</strong>
+              <button
+                className="browser-close icon-button"
+                aria-label="Sessielijst sluiten"
+                onClick={() => setMobileNav(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <label className="browser-campaign">
+              Campagne
+              <select
+                value={campaignId}
+                disabled={busy}
+                onChange={(e) => {
+                  setCampaignId(e.target.value);
+                  setSessionId('');
+                  setPage('sessions');
+                }}
+              >
+                <option value="">Kies een campagne</option>
+                {state.campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {campaign ? (
+              <>
+                <section className="session-list" aria-label="Sessielogs">
+                  <div className="panel-label">
+                    SESSIES <span>{visibleSessions.length}</span>
+                  </div>
+                  {state.sessions.filter(
+                    (s) => !campaign || s.campaignId === campaign.id,
+                  ).length === 0 ? (
+                    <div className="list-empty">
+                      <Dices size={27} />
+                      <p>
+                        Elk avontuur begint
+                        <br />
+                        met een eerste sessie.
+                      </p>
+                    </div>
+                  ) : (
+                    state.sessions
+                      .filter((s) => !campaign || s.campaignId === campaign.id)
+                      .map((s) => (
+                        <button
+                          disabled={busy}
+                          className={`session-item ${session?.id === s.id ? 'selected' : ''}`}
+                          key={s.id}
+                          onClick={() => {
+                            setSessionId(s.id);
+                            setPage('sessions');
+                            setMobileNav(false);
+                          }}
+                        >
+                          <BookOpen size={16} />
+                          <span>
+                            <strong>{s.title}</strong>
+                            <small>
+                              {new Date(s.createdAt).toLocaleDateString(
+                                'nl-BE',
+                                { day: 'numeric', month: 'long' },
+                              )}{' '}
+                              ·{' '}
+                              {s.scenes.reduce(
+                                (n, s) =>
+                                  n +
+                                  s.notes.filter((n) => n.text.trim()).length,
+                                0,
+                              )}{' '}
+                              notities
+                            </small>
+                          </span>
+                          <ChevronRight size={14} />
+                        </button>
+                      ))
+                  )}
+                </section>
+              </>
+            ) : (
+              <p className="browser-hint">
+                Kies of maak een campagne om de sessies te bekijken.
+              </p>
+            )}
+          </aside>
+        </>
+      )}
+      <div className="workspace">
+        {(page === 'sessions' || page === 'campaigns') && (
+          <button
+            className="session-toggle"
+            aria-label="Sessielijst openen"
+            aria-expanded={mobileNav}
+            onClick={() => setMobileNav(!mobileNav)}
+          >
+            <PanelLeft size={20} /> Sessies
+          </button>
+        )}
         <main>
           {errorText && (
             <div className="alert error" role="alert">
@@ -704,58 +773,7 @@ export default function App() {
                       <Plus size={17} /> Nieuwe sessie
                     </Button>
                   </div>
-                  <div className="session-layout">
-                    <section className="session-list panel">
-                      <div className="panel-label">
-                        SESSIES <span>{visibleSessions.length}</span>
-                      </div>
-                      {state.sessions.filter(
-                        (s) => !campaign || s.campaignId === campaign.id,
-                      ).length === 0 ? (
-                        <div className="list-empty">
-                          <Dices size={27} />
-                          <p>
-                            Elk avontuur begint
-                            <br />
-                            met een eerste sessie.
-                          </p>
-                        </div>
-                      ) : (
-                        state.sessions
-                          .filter(
-                            (s) => !campaign || s.campaignId === campaign.id,
-                          )
-                          .map((s) => (
-                            <button
-                              disabled={busy}
-                              className={`session-item ${session?.id === s.id ? 'selected' : ''}`}
-                              key={s.id}
-                              onClick={() => setSessionId(s.id)}
-                            >
-                              <BookOpen size={16} />
-                              <span>
-                                <strong>{s.title}</strong>
-                                <small>
-                                  {new Date(s.createdAt).toLocaleDateString(
-                                    'nl-BE',
-                                    { day: 'numeric', month: 'long' },
-                                  )}{' '}
-                                  ·{' '}
-                                  {s.scenes.reduce(
-                                    (n, s) =>
-                                      n +
-                                      s.notes.filter((n) => n.text.trim())
-                                        .length,
-                                    0,
-                                  )}{' '}
-                                  notities
-                                </small>
-                              </span>
-                              <ChevronRight size={14} />
-                            </button>
-                          ))
-                      )}
-                    </section>
+                  <div className="notes-layout">
                     <div className="session-main">
                       {!session ? (
                         <section className="panel welcome">
@@ -1096,8 +1114,12 @@ export default function App() {
           {page === 'models' && (
             <>
               <div className="page-heading">
-                <h1>Lokale modellen</h1>
+                <h1>Instellingen</h1>
+                <Button kind="secondary" onClick={exportLogs}>
+                  <Download size={17} /> Logs exporteren
+                </Button>
               </div>
+              <h2 className="settings-section-title">Lokale modellen</h2>
               <p className="subtle">
                 WebGPU{' '}
                 {caps?.webgpu && caps?.fp16
@@ -1180,6 +1202,15 @@ export default function App() {
                   : 'Offline appbestanden worden voorbereid.'}{' '}
                 Modellen laden automatisch bij een opname of test.
               </p>
+              <section className="panel settings-link">
+                <div>
+                  <h2>Testlaboratorium</h2>
+                  <p>Test een audiofragment en vergelijk instellingen.</p>
+                </div>
+                <Button kind="secondary" onClick={() => setPage('test')}>
+                  Testlaboratorium <ChevronRight size={17} />
+                </Button>
+              </section>
             </>
           )}
           {page === 'test' && (
@@ -1188,6 +1219,9 @@ export default function App() {
                 <div>
                   <h1>Testlaboratorium</h1>
                 </div>
+                <Button kind="secondary" onClick={() => setPage('models')}>
+                  Terug naar instellingen
+                </Button>
               </div>
               <section className="panel">
                 <div className="section-heading">
@@ -1720,9 +1754,11 @@ export default function App() {
             Build{' '}
             {import.meta.env.VITE_BUILD_COMMIT?.slice(0, 8) || 'development'}
           </span>
-          <button className="icon-button" onClick={exportLogs}>
-            <Download size={16} /> Logs exporteren
-          </button>
+          {page !== 'models' && (
+            <button className="icon-button" onClick={exportLogs}>
+              <Download size={16} /> Logs exporteren
+            </button>
+          )}
         </footer>
       </div>
       {modal && (
