@@ -58,6 +58,19 @@ De fixturemap bevat de ongewijzigde bestanden uit Ultravox-revisie `1ccaedd19b01
 
 ## Hosting en offline gebruik
 
+### Cloudflare Pages
+
+Gebruik de Git-integratie van **Cloudflare Pages** met deze instellingen:
+
+- Build command: `npm run build:cloudflare`
+- Build output directory: `dist`
+- Root directory: de repositoryroot
+- Environment variables: `NODE_VERSION=24` en `ONNXRUNTIME_NODE_INSTALL=skip` (ook tijdens dependency-installatie).
+
+Dit script bouwt de app en offline shell en verdeelt de WASM-runtime in lokale bestanden kleiner dan de Pages-limiet van 25 MiB. De modelworker voegt die bij het laden in RAM samen voor ONNX Runtime. De runtime blijft op dezelfde website staan en werkt ook uit de offline app-cache. `_headers` wordt automatisch naar `dist` gekopieerd. Er zijn geen Pages Functions, API-sleutels of apart gehoste runtimebestanden nodig. Gebruik Pages, niet het standaard Workers-deploycommando `wrangler deploy`.
+
+### Algemene statische hosting
+
 Publiceer de inhoud van `dist/` via HTTPS. `public/_headers` bevat voorbeeldheaders voor hosts die dit formaat ondersteunen. Configureer ze anders zelf:
 
 - `Cross-Origin-Opener-Policy: same-origin`

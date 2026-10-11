@@ -39,6 +39,8 @@ npm run build
 npm run preview
 ```
 
+Voor **Cloudflare Pages** gebruik je `npm run build:cloudflare` als buildcommando en `dist` als outputdirectory. Stel `NODE_VERSION=24` en `ONNXRUNTIME_NODE_INSTALL=skip` in als omgevingsvariabelen. Deze build houdt rekening met de maximale bestandsgrootte van Pages.
+
 Lees **[Ontwikkeling en testen](docs/DEVELOPMENT.md)** voor browservereisten, de testcommando's, hosting en privacycontroles. De volledige voortgang tegenover de blauwdruk staat in **[Implementatiestatus](docs/IMPLEMENTATION_STATUS.md)**.
 
 ## Voor ontwikkelaars en AI coding agents

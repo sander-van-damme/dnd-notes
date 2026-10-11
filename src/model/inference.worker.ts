@@ -12,6 +12,7 @@ import { notesPrompt, transcribePrompt } from './prompts';
 import { finalText } from '../core/output';
 import assets from './assets.json';
 import { verifiedResponse, verifyCachedResponse } from './integrity';
+import { cloudflareWasm } from './runtime';
 import type { ProcessingRequest, ProcessingResult } from '../core/types';
 // All inference happens in this disposable worker. Terminating it aborts generation
 // and releases the audio, model sessions and GPU resources together.
@@ -158,6 +159,11 @@ self.onmessage = async ({ data }) => {
   busy = true;
   try {
     if (type === 'load') {
+      if (import.meta.env.MODE === 'cloudflare') {
+        if (!env.backends.onnx.wasm)
+          throw Error('WASM-runtime is niet beschikbaar.');
+        env.backends.onnx.wasm.wasmBinary = await cloudflareWasm();
+      }
       loadRequestId = id;
       const spec = modelById(data.modelId);
       modelId = spec.id;
