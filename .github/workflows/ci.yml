@@ -14,8 +14,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm test
+      - name: QAT Mobile contract, integrity and offline cache tests
+        run: npx vitest run src/model/catalog.test.ts src/model/install.test.ts src/model/integrity.test.ts
+      - name: Complete unit and integration suite
+        run: npm test
       - run: npm run build
       - run: npm run build:cloudflare
       - run: npx playwright install --with-deps chromium
-      - run: CHROMIUM_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())") npm run test:e2e
+      - name: Browser regressions (QAT selection, safe legacy cleanup and app flows)
+        run: CHROMIUM_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())") npm run test:e2e
