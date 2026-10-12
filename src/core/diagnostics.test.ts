@@ -104,7 +104,7 @@ it('keeps loading checkpoints after tens of thousands of progress callbacks', as
 
   vi.resetModules();
   const next = await import('./diagnostics');
-  expect(next.diagnostics().previousRuns[0].lastStage.phase).toBe('onnx-start');
+  expect(next.diagnostics().previousRuns[0].lastStage?.phase).toBe('onnx-start');
 });
 
 it('records pinned ONNX file checkpoints but rejects arbitrary filenames', async () => {
