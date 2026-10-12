@@ -1195,8 +1195,9 @@ export default function App() {
                       )}
                       {!!installed?.legacyFiles && (
                         <div className="subtle">
-                          Een oudere Gemma-download staat nog in je browseropslag.
-                          Die bestanden zijn niet nodig voor QAT Mobile.
+                          Een oudere Gemma-download staat nog in je
+                          browseropslag. Die bestanden zijn niet nodig voor QAT
+                          Mobile.
                           <Button
                             kind="ghost"
                             disabled={busy}
