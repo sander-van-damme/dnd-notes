@@ -35,9 +35,7 @@ it('pins exactly the QAT Mobile WebGPU audio profile and verified weights', () =
       `onnx/${component}_${dtype}.onnx_data`,
     );
   }
-  expect(modelAssets.every((a) => /^[a-f0-9]{64}$/.test(a.sha256))).toBe(
-    true,
-  );
+  expect(modelAssets.every((a) => /^[a-f0-9]{64}$/.test(a.sha256))).toBe(true);
   expect(modelBytes).toBe(2571751525);
   expect(modelFiles).toContain('tokenizer.json');
   expect(modelFiles).toContain('processor_config.json');
