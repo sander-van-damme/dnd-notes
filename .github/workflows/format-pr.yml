@@ -1,0 +1,31 @@
+name: Format diagnostics PR
+on:
+  push:
+    branches: [feat/crash-diagnostics-pwa]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+      - run: npx prettier --write public/manifest.webmanifest src/App.tsx src/core/diagnostics.test.ts src/core/diagnostics.ts src/core/platform.ts src/model/inference.worker.ts
+      - name: Push only formatting adjustments
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/manifest.webmanifest src/App.tsx src/core/diagnostics.test.ts src/core/diagnostics.ts src/core/platform.ts src/model/inference.worker.ts
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: apply project Prettier formatting'
+            git push
+          fi
