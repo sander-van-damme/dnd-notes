@@ -100,6 +100,8 @@ let processor: Gemma4Processor | null = null;
 let model: PreTrainedModel | null = null;
 let modelId = '';
 let busy = false;
+const stage = (phase: string, asset = '', ms = 0) =>
+  self.postMessage({ id: loadRequestId, diagnostic: { phase, ...(asset && { asset }), ms } });
 async function generate(
   system: string,
   text: string,
@@ -162,9 +164,11 @@ self.onmessage = async ({ data }) => {
       env.remotePathTemplate = `{model}/resolve/${spec.revision}/`;
       networkAllowed = data.download;
       env.allowRemoteModels = data.download;
+      stage('prepare-start');
       await prepareModel(data.download, (label, percent) =>
         self.postMessage({ id, progress: { label, percent } }),
       );
+      stage('prepare-ready');
       if (data.installOnly) {
         networkAllowed = false;
         env.allowRemoteModels = false;
@@ -196,12 +200,18 @@ self.onmessage = async ({ data }) => {
       // Sequential initialization avoids a second model and reduces peak memory.
       if (data.provider !== 'webgpu')
         throw Error('Alleen WebGPU wordt ondersteund.');
+      const processorStart = performance.now();
+      stage('processor-start');
       processor = await Gemma4Processor.from_pretrained(spec.repo, options);
+      stage('processor-ready', '', performance.now() - processorStart);
+      const onnxStart = performance.now();
+      stage('onnx-start');
       model = await Gemma4ForConditionalGeneration.from_pretrained(spec.repo, {
         ...options,
         device: 'webgpu',
         dtype: modelDtypes,
       });
+      stage('onnx-ready', '', performance.now() - onnxStart);
       networkAllowed = false;
       env.allowRemoteModels = false;
       self.postMessage({ id, result: true });
@@ -247,6 +257,7 @@ self.onmessage = async ({ data }) => {
       }
     }
   } catch (error) {
+    stage('load-failed');
     networkAllowed = false;
     env.allowRemoteModels = false;
     self.postMessage({
