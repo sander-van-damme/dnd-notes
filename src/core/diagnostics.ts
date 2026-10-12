@@ -14,6 +14,9 @@ interface SavedRun {
   phase: 'idle' | 'loading' | 'processing' | 'ready';
   closed: boolean;
   events: Diagnostic[];
+  // Persisted outside the event ring, so progress spam cannot hide a checkpoint.
+  lastStage?: { phase: string; asset?: string; at: string };
+  lastProgress?: { percent: number; at: string };
 }
 interface SavedJournal {
   version: 1;
@@ -26,9 +29,15 @@ const MAX_EVENTS = 1000;
 const MAX_SAVED_EVENTS = 100;
 const MAX_PREVIOUS_RUNS = 2;
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+// Continuous model callbacks must not turn into thousands of synchronous
+// localStorage writes or evict the important ONNX/processor breadcrumbs.
+const PROGRESS_DISK_INTERVAL_MS = 10000;
+const PROGRESS_RAM_INTERVAL_MS = 2000;
 const build = import.meta.env.VITE_BUILD_COMMIT || 'development';
 const events: Diagnostic[] = [];
 let seq = 0;
+let lastProgressDiskMs = Number.NEGATIVE_INFINITY;
+let lastProgressRamMs = Number.NEGATIVE_INFINITY;
 let persistence: 'available' | 'unavailable' | 'write-failed' = 'unavailable';
 let previousRuns: SavedRun[] = [];
 const run: SavedRun = {
@@ -52,7 +61,6 @@ const savedFields: Record<string, readonly string[]> = {
   model_ready: ['model'],
   model_failure: ['name'],
   model_unload: [],
-  model_progress: ['percent'],
   inference_start: ['startMs', 'endMs'],
   inference_done: ['totalMs', 'inputTokens', 'outputTokens'],
   error: ['stage', 'name'],
@@ -84,6 +92,8 @@ const safePhases = new Set([
   'processor-start',
   'processor-ready',
   'onnx-start',
+  'onnx-file-start',
+  'onnx-file-read',
   'onnx-ready',
   'process-start',
   'process-ready',
@@ -210,21 +220,54 @@ export function record(
   type: string,
   data: Record<string, number | boolean | string> = {},
 ) {
+  const now = performance.now();
+  if (type === 'model_progress') {
+    const percent = data.percent;
+    // Undefined/-1 are library sentinel values, not real progress.
+    if (
+      typeof percent !== 'number' ||
+      !Number.isFinite(percent) ||
+      percent < 0 ||
+      percent > 100
+    )
+      return;
+    const at = new Date().toISOString();
+    run.lastAt = at;
+    run.lastProgress = { at, percent: Math.round(percent * 100) / 100 };
+    if (now - lastProgressDiskMs >= PROGRESS_DISK_INTERVAL_MS) {
+      lastProgressDiskMs = now;
+      persist();
+    }
+    // In-memory logs remain helpful, but only one sample every 2 s is needed.
+    if (now - lastProgressRamMs < PROGRESS_RAM_INTERVAL_MS) return;
+    lastProgressRamMs = now;
+  }
+
   const event: Diagnostic = {
     seq: ++seq,
     at: new Date().toISOString(),
-    monotonicMs: performance.now(),
+    monotonicMs: now,
     type,
     data,
   };
   events.push(event);
   if (events.length > MAX_EVENTS) events.shift();
 
+  // Progress is kept only as a bounded snapshot, never in the saved event
+  // ring. Stage and error checkpoints retain their ordering across a crash.
+  if (type === 'model_progress') return;
   const saved = safeEvent(event);
   if (!saved) return;
   run.events.push(saved);
   if (run.events.length > MAX_SAVED_EVENTS) run.events.shift();
   run.lastAt = event.at;
+  if (type === 'model_stage' && typeof saved.data.phase === 'string') {
+    run.lastStage = {
+      phase: saved.data.phase,
+      ...(typeof saved.data.asset === 'string' && { asset: saved.data.asset }),
+      at: event.at,
+    };
+  }
   if (type === 'model_load') run.phase = 'loading';
   if (type === 'inference_start') run.phase = 'processing';
   if (type === 'model_ready' || type === 'inference_done') run.phase = 'ready';
