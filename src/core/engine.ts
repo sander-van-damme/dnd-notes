@@ -123,6 +123,7 @@ export class Engine {
         installOnly,
       );
       if (epoch !== this.epoch) return;
+      record('model_ready', { model: modelId });
       this.update({
         status: installOnly ? 'idle' : 'ready',
         loaded: !installOnly,
@@ -130,6 +131,7 @@ export class Engine {
         progress: installOnly ? 'Model gedownload.' : 'Model geladen.',
       });
     } catch (e) {
+      record('model_failure', { name: e instanceof Error ? e.name : 'Error' });
       recordError('model_load', e);
       if (epoch === this.epoch) {
         this.adapter.unload();
