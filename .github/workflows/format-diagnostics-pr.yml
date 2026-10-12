@@ -1,0 +1,31 @@
+name: Format diagnostics hotfix
+on:
+  push:
+    branches: [fix/diagnostics-progress-flood]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+      - run: npx prettier --write src/core/diagnostics.ts src/core/diagnostics.test.ts src/model/adapter.ts src/model/inference.worker.ts src/model/progress.ts src/model/progress.test.ts
+      - name: Save format-only changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/core/diagnostics.ts src/core/diagnostics.test.ts src/model/adapter.ts src/model/inference.worker.ts src/model/progress.ts src/model/progress.test.ts
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: format crash diagnostics hotfix'
+            git push
+          fi
