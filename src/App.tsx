@@ -43,6 +43,7 @@ import {
   RUNTIME_VERSION,
 } from './model/catalog';
 import { defaultSegments } from './audio/segmenter';
+import { platformSnapshot, requestPersistentStorage } from './core/platform';
 import {
   diagnostics,
   download,
@@ -329,6 +330,11 @@ export default function App() {
   useEffect(() => {
     engine.onChange = setView;
     if (!store.ready) void store.init();
+    void platformSnapshot('startup').catch(() => {});
+    const installed = () => record('pwa_installed');
+    const installable = () => record('pwa_installable');
+    window.addEventListener('appinstalled', installed);
+    window.addEventListener('beforeinstallprompt', installable);
     void capabilities()
       .then(setCaps)
       .catch(() =>
@@ -360,6 +366,8 @@ export default function App() {
       if (e.data?.type === 'OFFLINE_READY') setShellReady(true);
     };
     navigator.serviceWorker?.addEventListener('message', message);
+    const controller = () => { void platformSnapshot('startup').catch(() => {}); };
+    navigator.serviceWorker?.addEventListener('controllerchange', controller);
     if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       void navigator.serviceWorker
         .register('/sw.js')
@@ -386,6 +394,9 @@ export default function App() {
       window.removeEventListener('error', uncaught);
       window.removeEventListener('unhandledrejection', rejected);
       window.removeEventListener('beforeunload', beforeUnload);
+      window.removeEventListener('appinstalled', installed);
+      window.removeEventListener('beforeinstallprompt', installable);
+      navigator.serviceWorker?.removeEventListener('controllerchange', controller);
       window.removeEventListener('online', network);
       window.removeEventListener('offline', network);
       document.removeEventListener('visibilitychange', visibility);
@@ -460,6 +471,8 @@ export default function App() {
         );
       await navigator.storage?.persist();
     }
+    void platformSnapshot('load').catch(() => {});
+    if (downloadModel) await requestPersistentStorage();
     await engine.load(selectedModel, provider, downloadModel, installOnly);
     setCache(await cacheStatus());
   }
@@ -481,12 +494,14 @@ export default function App() {
     setDescription(campaign.description || '');
     setPage('campaigns');
   }
-  function exportLogs() {
+  async function exportLogs() {
+    const platform = await platformSnapshot('export');
     download(
       'notulist-logs.json',
       JSON.stringify(
         {
           ...diagnostics(),
+          platform,
           model: {
             id: engine.modelId,
             revision: spec.revision,
@@ -1116,7 +1131,7 @@ export default function App() {
             <>
               <div className="page-heading">
                 <h1>Instellingen</h1>
-                <Button kind="secondary" onClick={exportLogs}>
+                <Button kind="secondary" onClick={() => { void exportLogs(); }}>
                   <Download size={17} /> Logs exporteren
                 </Button>
               </div>
@@ -1775,7 +1790,7 @@ export default function App() {
             {import.meta.env.VITE_BUILD_COMMIT?.slice(0, 8) || 'development'}
           </span>
           {page !== 'models' && (
-            <button className="icon-button" onClick={exportLogs}>
+            <button className="icon-button" onClick={() => { void exportLogs(); }}>
               <Download size={16} /> Logs exporteren
             </button>
           )}
