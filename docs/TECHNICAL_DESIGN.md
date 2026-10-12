@@ -1,12 +1,12 @@
 # DnD Notulist — technische blauwdruk
 
-> **Status:** ontwerp- en implementatiespecificatie, 10 oktober 2026. Dit is de leidraad voor AI coding agents en ontwikkelaars. Een technische keuze die hier als *te benchmarken* staat, is **geen** bewezen prestatie of verplicht optimale configuratie. De [README](../README.md) is bewust niet-technisch.
+> **Status:** ontwerp- en implementatiespecificatie, bijgewerkt 12 oktober 2026. **Actueel productbesluit: Windows-laptop en live transcriptie eerst.** De oorspronkelijke ambitie van automatische notities blijft een later productdoel; oudere keuzes voor Pixel 6a, één multimodaal model en verplichte FACT-/JSON-uitvoer zijn geen blockers van de eerste mijlpaal. Een model dat hier als *te benchmarken* staat, is geen bewezen winnaar.
 
 ## 1. Doel, gebruikersverhaal en succescriterium
 
-Een speler opent DnD Notulist als webpagina op een Google Pixel 6a, laptop of tablet, selecteert een lokaal AI-model en start een Dungeons & Dragons-sessie. De applicatie luistert via de microfoon, verwerkt spraak lokaal, maakt tijdens het spel beknopte en betekenisvolle Nederlandstalige notities, en onthoudt relevante context. Spelers kunnen notities corrigeren terwijl het systeem doorgaat met luisteren.
+Een speler opent DnD Notulist als webpagina op een **Windows-laptop** en start een Dungeons & Dragons-sessie. De eerste bruikbare versie zet microfoonspraak lokaal en zo snel mogelijk om in een **leesbaar, corrigeerbaar Vlaams/Nederlands live transcript**, inclusief Engelse speltermen. Pas nadat dit betrouwbaar genoeg werkt, wordt het transcript in een afzonderlijke, eenvoudige stap gebruikt om D&D-notities aan te vullen. Android is niet verplicht en wordt pas opnieuw overwogen als het laptopproduct afgerond is.
 
-**Productdoel:** maximaliseer correcte, bruikbare en tijdige sessienotities per eenheid compute en geheugen. Niet: een woordelijk, foutloos, permanent transcript als eindproduct.
+**Eerste productdoel (#35):** betrouwbare lokale transcriptie op de laptop, structureel sneller dan de binnenkomende spraak (**RTF < 1** op representatief materiaal), met acceptabele eerste-tekst-latency, begrip van eigennaam/code-switching, begrensde achterstand en inspecteerbare transcriptkwaliteit. **Vervolgdoel (#33):** maak op basis van nieuwe transcripttekst en bestaande notities een gewone leesbare notitieaanvulling. Geavanceerde scèneherkenning, promptschema's, lange context, gedetailleerde factprotocollen en automatisering volgen eventueel daarna.
 
 Voorbeelden van gebeurtenissen die notities verdienen:
 - NPC's en spelerspersonages; namen, rollen, motieven en beloften.
@@ -22,26 +22,28 @@ De app verwerkt voornamelijk gesproken Vlaams/Nederlands met Engelstalige D&D-te
 
 1. **Browser-first, webapp/PWA.** Geen verplichte native Android/Kotlin-app, helperproces of eigen inferentieserver.
 2. **Offline en privacy-first.** Alle microfoonaudio en inferentie blijven op het toestel. Geen audio upload, telemetrie of externe AI-calls; modelbestanden worden vóór offlinegebruik eenmalig gedownload en lokaal gecachet. Geen audio-opnames persisteren op schijf.
-3. **Eén multimodaal audio-naar-tekst/kennis-model tegelijk** als gewenste runtime. Geen standaard zware ASR+LLM-dubbelpipeline. Een aparte pipeline mag alleen als optionele benchmark-baseline, niet stilzwijgend als productiearchitectuur.
+3. **Gescheiden transcribeer- en notitiestappen, niet gelijktijdig verplicht.** Begin met één gespecialiseerd, klein, lokaal ASR-model **zonder tweede LLM**. Pas na een betrouwbare transcriptie komt eventueel een afzonderlijk text-only model voor eenvoudige, append-only notitieaanvullingen. Meet ook dan totaal RAM, GPU, achterstand en intermodelresourceconflicten; het is geen verplichting beide modellen tegelijk geladen te houden.
 4. **Modelonafhankelijke businesslogica.** Modellen en inference-adapters zijn verwisselbaar. Contextbeheer, geheugen, notitie-UI, VAD, benchmarking en opslag werken onafhankelijk van modelkeuze.
 5. **Transformers.js is de eerste inference-engine, geen blijvende exclusiviteit.** Andere engines (wllama v3, WebLLM) kunnen later via dezelfde grens.
 6. **Menselijke correcties winnen altijd.** AI mag een gebruikersbewerking niet ongemerkt vervangen, ook niet als een langlopende inferenceaanroep later terugkeert.
 7. **Realtime bruikbaarheid gaat boven maximale theoretische kwaliteit.** Nooit stilletjes audio overslaan of conclusies verzinnen wanneer de inferentiewachtrij oploopt.
-8. **Meten vóór optimaliseren.** Permanente, reproduceerbare testmodus; de eerste echte doelstelling is een werkende browser-inferentie op Pixel 6a.
+8. **Meten vóór optimaliseren.** Permanente, reproduceerbare testmodus; de eerste hardware-/kwaliteitsgate is betrouwbare, duurzame lokale ASR op de **Windows-laptop**. Mobiel is expliciet geparkeerd in #32.
 9. **Deterministische JavaScript/TypeScript-logica waar mogelijk.** Gebruik het model voor audioherkenning, semantische interpretatie en redactie; laat JS grenzen, IDs, contextselectie, versiebeheer, opslaan, samenvoegen en validatie uitvoeren.
 10. **Functionele eenvoud.** Vermijd premature frameworks, vector databases, agentorchesters, complexe retrievallagen, fine-tuning of grote promptwoordenboeken.
 
 ### Richtwaarden, nog NIET aangetoond
 
-- Doelapparaat: **Google Pixel 6a** als zwakste belangrijke toestel; ook laptops en tablets, mits browser/hardware ondersteund zijn.
-- Streef naar circa **4 GB maximaal totaal browsergeheugen** voor model, audio, workers, WebGPU en JS samen. Dit is een **ontwerpbudget**, geen browsergarantie; Pixel 6a heeft 6 GB fysiek RAM, wat niet betekent dat een tab 6 GB krijgt.
-- Streef naar zichtbare relevante notities ongeveer **30–60 seconden** na een gebeurtenis, zo mogelijk sneller. Harde haalbaarheid te benchmarken.
+- Eerste doelapparaat: de **werkelijke Windows-laptop** waarop Chrome 154/WebGPU het QAT-model al kon laden, maar niet realtime transcriptie plus notities verwerkte. Geen verplichte Pixel 6a-/Android-test.
+- Beperk CPU-/GPU-/WASM-/browsergeheugen tot wat voor de gekozen laptop praktisch werkt; maak geen vaste mobiele 4 GB-budgeteis voor de eerste ASR-release. Browserheap is niet totaal RAM/VRAM.
+- Geef het transcript in **korte, coherente fragmenten** weer, zo snel als betrouwbare ASR toelaat. Meet eerste-tekstvertraging, de volledige RTF en wachtrij; test minimaal langdurig spreektempo zonder groeiende achterstand. Automatische notities hoeven nog niet realtime in deze mijlpaal.
 - Duurzaam realtime: totale gemiddelde verwerking moet sneller zijn dan aankomende spraak; meet niet alleen tokens/s maar ook encodertijd, context/prefill, modelinit en wachtrij.
 - Initieel geen vastgeklikte ideale chunklengte, VAD-tool of thinkingmodus: laat tests beslissen.
 
 ## 2. Gebruikersmodi
 
 ### 2.1 Sessie (normale modus)
+
+**Eerste live-ASR-mijlpaal:** de gebruiker kiest een campagne/sessie, start/onderbreekt microfooncapture en leest het voorlopig of bevestigd transcript in volgorde met tijdstempels. ASR-tekst kan lokaal in de sessie bewaard en gecorrigeerd worden; audio blijft uitsluitend tijdelijk in RAM. Toon opnamewerkelijkheid en transcriptievertraging eerlijk. Geen automatische scène- of note-generatie nodig om deze eerste stap te halen. De uitgebreidere notitie-UI hieronder is de **latere productrichting**, geen acceptatiecriterium van #35.
 
 - Campagne kiezen/maken; sessie starten, pauzeren, stoppen.
 - Model kiezen uit daadwerkelijk compatibele lokale modellen, met download-/opslagstatus.
@@ -161,17 +163,20 @@ Bewaar model manifests met exacte HF repo/revision, gevraagde bestanden, hashes 
 
 ## 5. Modelonderzoek, kandidaten en keuzeproces
 
-De volgende opties zijn **kandidaten, geen winnaars**:
+De volgende opties zijn **kandidaten, geen winnaars**. Test eerst gespecialiseerde **multilinguale** ASR-gewichten; behoud Gemma als historische benchmark, niet als vanzelfsprekende ASR-default:
 
 | Kandidaat | Onderzoeksvraag |
 | --- | --- |
-| [Gemma 4 E2B IT ONNX](https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX) | Ondersteunt compact audio→bruikbare Nederlandse notities; thinking uit/aan; laadt het op Pixel? |
+| [Whisper Tiny (meertalig)](https://huggingface.co/onnx-community/whisper-tiny) | 39M parameters; ~76 MB geselecteerde FP16-encoder+merged-decoder. Haalt dit op Windows realtime snelheid met voldoende Vlaams/D&D-namen? |
+| [Whisper Base (meertalig)](https://huggingface.co/onnx-community/whisper-base) | 74M parameters; ~146 MB geselecteerde FP16-encoder+merged-decoder. Is dit de beste balans tussen spraakherkenning en latency? |
+| [Vosk Small Dutch](https://alphacephei.com/vosk/models) | ~39 MB lokaal Nederlands streaming-ASR; is de nauwkeurigheid en de wisseling met Engels voldoende ondanks beperkte woordenschat? |
+| [Gemma 4 E2B Mobile QAT ONNX](https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX) | Bestaande, op laptop werkelijk geteste baseline; QAT laadt en inferentie draait, maar gecombineerde transcriptie/notities was bij de eerste proef ~3,6× trager dan realtime. Vervangen of later als text-only notitiekandidaat testen, niet verplicht voor ASR. |
 | [Voxtral Mini 3B 2507 ONNX](https://huggingface.co/onnx-community/Voxtral-Mini-3B-2507-ONNX) | Hoe goed zijn NL/code-switching, audio-Q&A en langere clips; is footprint/latency haalbaar? |
 | [Ultravox v0.5 Llama 3.2 1B ONNX](https://huggingface.co/onnx-community/ultravox-v0_5-llama-3_2-1b-ONNX) | Is de compacte footprint genoeg voor realtime mét voldoende semantische notitiekwaliteit? |
 | Gemma 3n E2B/E4B | Vergelijk oudere/alternatieve audioroute als baseline indien moderne browserroute beschikbaar; geen voorkeur boven Gemma 4 zonder meting. |
 | Nieuwe toekomstige audio-LLM's | Via nieuw manifest en adapter testen zonder corelogica te herschrijven. |
 
-**Let op:** sommige modelrepo's vergen specifieke bestandsvarianten, een modellicentie/voorwaardenacceptatie of bijzondere processorinstellingen. Neem aantoonbaar werkende WebGPU-configuratie en licentie op in modelmanifest. Een ONNX-repo of modelkaart bewijst **niet** dat een Pixel 6a voldoende RAM of snelheid heeft.
+**Let op:** sommige modelrepo's vergen specifieke bestandsvarianten, een modellicentie/voorwaardenacceptatie of bijzondere processorinstellingen. Neem een gepinde revisie, SHA-256, daadwerkelijke geselecteerde dtype/ONNX-bestanden, licentie, WebGPU/WASM-configuratie en laptopmeting op in modelmanifest. De Hugging Face-repogrootte omvat vaak vele quantisaties; de runtime hoeft alleen de geselecteerde bestanden te laden. Een ONNX-repo of modelkaart bewijst **niet** dat onze laptop snelheid of kwaliteit haalt. Whisper is batch-/chunkgebaseerd; 'live' betekent voorlopig near-realtime fragmenten, geen gegarandeerde woord-voor-woord-streaming.
 
 Andere onderzochte runtimes:
 - [Transformers.js](https://github.com/huggingface/transformers.js): gekozen eerste integratie; compatibele ONNX-varianten en audiodemo's.
