@@ -397,3 +397,36 @@ test('iconenbalk, sessielijst en instellingen met testsubpagina', async ({
   ).toBe(true);
   await page.screenshot({ path: '/tmp/dnd-rail-mobile.png', fullPage: true });
 });
+
+test('QAT Mobile is de enige modelkeuze; opruimen wist alleen legacy cache', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const legacy =
+    'https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX/resolve/old/config.json';
+  const current =
+    'https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX/resolve/70dab57c7bc59f33b4fc32809299cb8b4465e96c/config.json';
+  await page.evaluate(async ({ legacy, current }) => {
+    const cache = await caches.open('dnd-models-v1');
+    await cache.put(legacy, new Response('{}'));
+    await cache.put(current, new Response('{}'));
+  }, { legacy, current });
+  await page.reload();
+  await page.getByRole('button', { name: 'Instellingen', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Gemma 4 E2B Mobile QAT' }),
+  ).toBeVisible();
+  await expect(page.getByText('2.57 GB')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Oude modelbestanden wissen' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Oude modelbestanden wissen' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Oude modelbestanden wissen' }),
+  ).toHaveCount(0);
+  const remaining = await page.evaluate(async () =>
+    (await (await caches.open('dnd-models-v1')).keys()).map((x) => x.url),
+  );
+  expect(remaining).toContain(current);
+  expect(remaining).not.toContain(legacy);
+});
