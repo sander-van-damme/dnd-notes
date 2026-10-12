@@ -472,7 +472,7 @@ export default function App() {
       await navigator.storage?.persist();
     }
     void platformSnapshot('load').catch(() => {});
-    if (downloadModel) await requestPersistentStorage();
+    await requestPersistentStorage();
     await engine.load(selectedModel, provider, downloadModel, installOnly);
     setCache(await cacheStatus());
   }
