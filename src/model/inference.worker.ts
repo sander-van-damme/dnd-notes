@@ -12,6 +12,7 @@ import { finalText } from '../core/output';
 import assets from './assets.json';
 import { verifiedResponse } from './integrity';
 import { cloudflareWasm } from './runtime';
+import { modelProgressReporter } from './progress';
 import type { ProcessingRequest, ProcessingResult } from '../core/types';
 // All inference happens in this disposable worker. Terminating it aborts generation
 // and releases the audio, model sessions and GPU resources together.
@@ -201,15 +202,14 @@ self.onmessage = async ({ data }) => {
       const options = {
         revision: spec.revision,
         local_files_only: true,
-        progress_callback: (p: {
-          status: string;
-          file?: string;
-          progress?: number;
-        }) =>
-          self.postMessage({
-            id,
-            progress: { label: p.file ?? p.status, percent: p.progress },
-          }),
+        progress_callback: modelProgressReporter(
+          (p) =>
+            self.postMessage({
+              id,
+              progress: { label: p.file ?? p.status, percent: p.progress },
+            }),
+          (phase, asset) => stage(phase, asset),
+        ),
       };
       if (model) await model.dispose();
       model = null;

@@ -9,8 +9,15 @@ export class WorkerAdapter implements AudioModelAdapter {
   private worker: Worker | null = null;
   private counter = 0;
   private timer?: ReturnType<typeof setTimeout>;
-  private lastStage = '';
+  private lastProgressUiMs = Number.NEGATIVE_INFINITY;
+  private lastProgressLogMs = Number.NEGATIVE_INFINITY;
+  private lastWatchMs = Number.NEGATIVE_INFINITY;
   private watch() {
+    // Several ONNX files may report thousands of progress messages per second.
+    // One watchdog reset each second is enough and avoids timer churn.
+    const now = performance.now();
+    if (this.timer && now - this.lastWatchMs < 1000) return;
+    this.lastWatchMs = now;
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       const message =
@@ -42,15 +49,15 @@ export class WorkerAdapter implements AudioModelAdapter {
         return;
       }
       if (data.progress) {
-        const stage = `${data.progress.label}:${Math.floor((data.progress.percent ?? 0) / 10)}`;
-        if (stage !== this.lastStage) {
-          record('model_progress', {
-            stage: data.progress.label,
-            percent: data.progress.percent ?? -1,
-          });
-          this.lastStage = stage;
+        const now = performance.now();
+        if (now - this.lastProgressLogMs >= 2000) {
+          record('model_progress', { percent: data.progress.percent ?? -1 });
+          this.lastProgressLogMs = now;
         }
-        p.progress?.(data.progress.label, data.progress.percent);
+        if (now - this.lastProgressUiMs >= 200) {
+          p.progress?.(data.progress.label, data.progress.percent);
+          this.lastProgressUiMs = now;
+        }
         return;
       }
       clearTimeout(this.timer);
@@ -115,6 +122,10 @@ export class WorkerAdapter implements AudioModelAdapter {
   }
   unload() {
     clearTimeout(this.timer);
+    this.timer = undefined;
+    this.lastWatchMs = Number.NEGATIVE_INFINITY;
+    this.lastProgressLogMs = Number.NEGATIVE_INFINITY;
+    this.lastProgressUiMs = Number.NEGATIVE_INFINITY;
     this.worker?.terminate();
     this.worker = null;
     for (const p of this.pending.values())
