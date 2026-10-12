@@ -10,6 +10,16 @@
 
 De app gebruikt geen backend, databasecontainer, API-key, externe inferentie of account. Een modeldownload gebeurt uitsluitend na een gebruikersactie. Daarvoor zijn `huggingface.co` en de bijbehorende Hugging Face CDN/Xet-bestandsdomeinen nodig; tijdens verwerking staan remote modelrequests uit.
 
+## Actueel modelprofiel — Gemma 4 E2B Mobile QAT ONNX
+
+- Modelbron: `onnx-community/gemma-4-E2B-it-qat-mobile-ONNX`, vastgepinde revisie `70dab57c7bc59f33b4fc32809299cb8b4465e96c`, Apache-2.0.
+- De actieve WebGPU-bestanden zijn `audio_encoder_q2f16`, `embed_tokens_q2f16`, `decoder_model_merged_q2f16` en voorlopig `vision_encoder_fp16`, inclusief elk `.onnx_data`-bestand. De totale grootte van deze acht ONNX-bestanden bedraagt **2.571.751.525 bytes (2,57 GB)**. Dit is niet hetzelfde als gemeten RAM-/VRAM-verbruik; tokenizer en overige metadata komen erbij.
+- `src/model/assets.json` bevat uitsluitend de QAT-assets met exacte upstream SHA-256 en bestandsgroottes; `src/model/catalog.ts` bepaalt de gepinde URL's en de runtime-dtypes. De oorspronkelijke checksums zijn gecontroleerd tegen de upstream Hugging Face modelcommit. `@huggingface/transformers@4.3.1` bundelt `onnxruntime-web@1.31.0-dev.20260914-8d85527a0`, waarvan de vastgepinde WebGPU-code de vereiste 2-bit-quantisatie voor `GatherBlockQuantized` ondersteunt. De echte modelinitialisatie en generatie blijven afhankelijk van browser-/device-compatibiliteit.
+- Het oude `onnx-community/gemma-4-E2B-it-ONNX`-model wordt niet meer aangeboden of gedownload. Als oudere bestanden aanwezig zijn in de modelcache, biedt Instellingen **Oude modelbestanden wissen**. Deze actie verwijdert alleen obsolete cache-items; actieve QAT-gewichten, campagnes en notities blijven ongemoeid.
+- De vision encoder blijft voorlopig inbegrepen omdat de bestaande loader hem mogelijk vereist. Alleen #3 onderzoekt weglaten; dit blokkeert de QAT-migratie niet.
+
+**Release-/hardwaregate voor issue #2:** voer op de smartphone waarop het oude model crashte én op een laptop een echte, toestemming-gedekte audio→Nederlandse-notitiesproef uit. Controleer browser/build, WebGPU + shader-f16, alle q2f16-sessies, download en checksumcontrole, geslaagde generatie, geheugenbelasting/fouten, offline herstart en herhaald laden. Een groene CI met mocks volstaat **niet** om #2 als opgelost te sluiten. Geen terugval naar het oude 4GB-model of een cloudprovider.
+
 ## Controles
 
 ```bash

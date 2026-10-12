@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const profile = vi.hoisted(() => ({
   assets: [
     {
-      path: 'onnx/embed_tokens_q4f16.onnx_data',
+      path: 'onnx/embed_tokens_q2f16.onnx_data',
       size: 3,
       sha256:
         'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
@@ -36,7 +36,7 @@ it('wijst een cache zonder extern Gemma-gewicht direct af in plaats van te blijv
   const fetch = vi.fn();
   vi.stubGlobal('fetch', fetch);
   await expect(prepareModel(false, vi.fn())).rejects.toThrow(
-    'embed_tokens_q4f16.onnx_data',
+    'embed_tokens_q2f16.onnx_data',
   );
   expect(fetch).not.toHaveBeenCalled();
 });
@@ -54,11 +54,11 @@ it('herstelt alleen ontbrekende bestanden en kan daarna volledig offline control
 });
 it('verwijdert corrupt extern gewicht en accepteert het niet als geïnstalleerd', async () => {
   entries.set(
-    'https://example.test/onnx/embed_tokens_q4f16.onnx_data',
+    'https://example.test/onnx/embed_tokens_q2f16.onnx_data',
     new Response('bad'),
   );
   await expect(prepareModel(false, vi.fn())).rejects.toThrow('onvolledig');
   expect(
-    entries.has('https://example.test/onnx/embed_tokens_q4f16.onnx_data'),
+    entries.has('https://example.test/onnx/embed_tokens_q2f16.onnx_data'),
   ).toBe(false);
 });

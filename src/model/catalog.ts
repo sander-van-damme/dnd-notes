@@ -4,16 +4,16 @@ export const RUNTIME_VERSION = '4.3.1';
 export const models = [
   {
     id: 'gemma4',
-    name: 'Gemma 4 E2B',
-    repo: 'onnx-community/gemma-4-E2B-it-ONNX',
-    revision: '7c6d3d1d4092253ea241428e88312ab34bfa9c26',
+    name: 'Gemma 4 E2B Mobile QAT',
+    repo: 'onnx-community/gemma-4-E2B-it-qat-mobile-ONNX',
+    revision: '70dab57c7bc59f33b4fc32809299cb8b4465e96c',
     license: 'Apache-2.0',
-    estimatedGB: 4.5,
+    estimatedGB: 2.57,
     maxAudioSeconds: 30,
     sampleRate: 16000,
     thinking: true,
     description:
-      'Eerste kandidaat uit de blauwdruk. Multimodaal; kwaliteit en snelheid op jouw toestel te testen.',
+      'Mobiel QAT-profiel (2-bit); audio en Nederlandse notities lokaal via WebGPU. Compatibiliteit op jouw toestel te testen.',
   },
 ] as const;
 export const modelById = (id: string) => {
@@ -21,7 +21,14 @@ export const modelById = (id: string) => {
   if (!m) throw Error('Onbekend model.');
   return m;
 };
-export const dtypeLabel = () => 'encoders fp16 / decoder + embedding q4f16';
+// Keep the loader dtype mapping aligned with the pinned upstream QAT config.
+export const modelDtypes = {
+  audio_encoder: 'q2f16',
+  vision_encoder: 'fp16',
+  embed_tokens: 'q2f16',
+  decoder_model_merged: 'q2f16',
+} as const;
+export const dtypeLabel = () => 'audio/embedding/decoder q2f16 · vision fp16';
 export async function capabilities() {
   const gpu = (
     navigator as Navigator & {
@@ -43,11 +50,9 @@ export async function capabilities() {
     storage: await navigator.storage?.estimate(),
   };
 }
-export const modelAssets = assets.gemma4.filter((asset) =>
-  /onnx\/(audio_encoder_fp16|vision_encoder_fp16|embed_tokens_q4f16|decoder_model_merged_q4f16)\.onnx(?:_data)?$/.test(
-    asset.path,
-  ),
-);
+// The manifest contains only the exact QAT Mobile graph and external-data files.
+// Keep the vision encoder until the independent audio-only loader work (#3).
+export const modelAssets = assets.gemma4;
 export const metadataFiles = [
   'config.json',
   'generation_config.json',
@@ -77,20 +82,35 @@ export async function cacheStatus() {
       bytes += Number(response.headers.get('content-length')) || 0;
     }
   }
-  const old = keys.some(
-    (k) =>
-      k.url.includes(`${models[0].repo}/resolve/`) &&
-      !k.url.includes(`/resolve/${models[0].revision}/`),
-  );
+  const legacyKeys = keys.filter((key) => isLegacyModelUrl(key.url));
   return [
     {
       id: 'gemma4',
       files,
       bytes,
       installed: files === modelFiles.length,
-      update: old && files !== modelFiles.length,
+      update: legacyKeys.length > 0 && files !== modelFiles.length,
+      legacyFiles: legacyKeys.length,
     },
   ];
+}
+// Remove only obsolete model files; never clear the current QAT download or notes.
+export function isLegacyModelUrl(value: string) {
+  const url = new URL(value);
+  if (url.hostname !== 'huggingface.co') return false;
+  const oldRepo = '/onnx-community/gemma-4-E2B-it-ONNX/resolve/';
+  const currentRepo = `/${models[0].repo}/resolve/`;
+  return (
+    url.pathname.startsWith(oldRepo) ||
+    (url.pathname.startsWith(currentRepo) &&
+      !url.pathname.startsWith(`${currentRepo}${models[0].revision}/`))
+  );
+}
+export async function clearLegacyModelCache() {
+  const cache = await caches.open(MODEL_CACHE);
+  for (const key of await cache.keys()) {
+    if (isLegacyModelUrl(key.url)) await cache.delete(key);
+  }
 }
 export async function clearModelCache() {
   await caches.delete(MODEL_CACHE);

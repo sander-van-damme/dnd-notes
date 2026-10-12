@@ -36,6 +36,7 @@ import {
   cacheStatus,
   capabilities,
   clearModelCache,
+  clearLegacyModelCache,
   modelById,
   models,
   modelBytes,
@@ -1191,6 +1192,25 @@ export default function App() {
                         >
                           <Trash2 size={16} /> Verwijderen
                         </Button>
+                      )}
+                      {!!installed?.legacyFiles && (
+                        <div className="subtle">
+                          Een oudere Gemma-download staat nog in je
+                          browseropslag. Die bestanden zijn niet nodig voor QAT
+                          Mobile.
+                          <Button
+                            kind="ghost"
+                            disabled={busy}
+                            onClick={() =>
+                              attempt(async () => {
+                                await clearLegacyModelCache();
+                                setCache(await cacheStatus());
+                              })
+                            }
+                          >
+                            <Trash2 size={16} /> Oude modelbestanden wissen
+                          </Button>
+                        </div>
                       )}
                     </section>
                   );

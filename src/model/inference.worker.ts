@@ -5,7 +5,7 @@ import {
   Tensor,
   type PreTrainedModel,
 } from '@huggingface/transformers';
-import { MODEL_CACHE, modelById } from './catalog';
+import { MODEL_CACHE, modelById, modelDtypes } from './catalog';
 import { prepareModel } from './install';
 import { notesPrompt, transcribePrompt } from './prompts';
 import { finalText } from '../core/output';
@@ -200,12 +200,7 @@ self.onmessage = async ({ data }) => {
       model = await Gemma4ForConditionalGeneration.from_pretrained(spec.repo, {
         ...options,
         device: 'webgpu',
-        dtype: {
-          audio_encoder: 'fp16',
-          vision_encoder: 'fp16',
-          embed_tokens: 'q4f16',
-          decoder_model_merged: 'q4f16',
-        },
+        dtype: modelDtypes,
       });
       networkAllowed = false;
       env.allowRemoteModels = false;

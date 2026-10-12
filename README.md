@@ -19,9 +19,9 @@ DnD Notulist moet vooral **weinig rekenkracht en geheugen gebruiken**, terwijl d
 
 ## Status
 
-Er is nu een werkende browserapp met campagnes, bewerkbare sessienotities, lokale opslag, Markdown-export, een campagnewoordenboek en een permanente testmodus. De lokale AI-integratie gebruikt Gemma 4 E2B via WebGPU. Je kiest eerst een campagne; modellen en tests staan achter het instellingenicoon. Bij een opname of test wordt het model automatisch gedownload indien nodig en geladen, en daarna hergebruikt zolang de pagina openblijft. Een voorafgaande test is aanbevolen, maar blokkeert de opnameknop niet.
+Er is nu een werkende browserapp met campagnes, bewerkbare sessienotities, lokale opslag, Markdown-export, een campagnewoordenboek en een permanente testmodus. De lokale AI-integratie gebruikt **Gemma 4 E2B Mobile QAT ONNX** (circa 2,57 GB modelgewichten) via WebGPU. De oude ~4GB-variant is niet langer de modelstandaard. Je kiest eerst een campagne; modellen en tests staan achter het instellingenicoon. Bij een opname of test wordt het model automatisch gedownload indien nodig en geladen, en daarna hergebruikt zolang de pagina openblijft. Een voorafgaande test is aanbevolen, maar blokkeert de opnameknop niet.
 
-De app is een **experimenteel prototype**. Nederlandse notitiekwaliteit, realtime verwerking en geheugenverbruik op een echte Pixel 6a zijn nog geen bewezen eigenschappen. De testmodus maakt deze grenzen zichtbaar; er is geen terugval naar cloud-AI.
+De app is een **experimenteel prototype**. De QAT-migratie vereist nog een echte volledige audio-naar-notitiesproef op de Pixel 6a (en een laptop); CI zonder WebGPU bewijst geen werkende mobiele inferentie. Nederlandse notitiekwaliteit, realtime verwerking en geheugenverbruik op een echte Pixel 6a zijn nog geen bewezen eigenschappen. De testmodus maakt deze grenzen zichtbaar; er is geen terugval naar cloud-AI.
 
 ### Lokaal starten
 
