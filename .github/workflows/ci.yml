@@ -12,10 +12,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Temporary format diff for repair
-        run: |
-          npx prettier --write src/App.tsx src/model/catalog.test.ts tests/app.spec.ts
-          git diff -- src/App.tsx src/model/catalog.test.ts tests/app.spec.ts
       - run: npm run lint
       - run: npm run format:check
       - name: QAT Mobile contract, integrity and offline cache tests
