@@ -1,12 +1,19 @@
-# Implementatiestatus — 11 oktober 2026
+# Implementatiestatus — 12 oktober 2026
 
 De technische blauwdruk blijft de productrichting. Deze implementatie is een testbaar prototype; niet alle onderzoeksgates zijn bewezen.
+
+## Modelmigratie in deze wijziging (issue #2)
+
+- De bedoelde standaard is nu **Gemma 4 E2B Mobile QAT ONNX** (`q2f16` voor audioencoder, embeddings en decoder; `fp16` voor vision), vastgelegd op revisie `70dab57c7bc59f33b4fc32809299cb8b4465e96c`. De oude ~4GB-modelroute is uit de normale selectie en het integriteitsmanifest gehaald.
+- De acht q2f16/fp16 ONNX-bestanden hebben upstream-geverifieerde SHA-256-controles; metadata en de externe datafiles zijn in het installatiemodel opgenomen. Er bestaat een gerichte verwijderactie voor oudere modelcache, zonder dat sessiegegevens of nieuw QAT-materiaal worden gewist.
+- Unit- en browserregressietests controleren de gekozen modelvariant, manifest-/cachecontract, onvolledige/corrupte offline downloads en opruiming van oude gewichten. De normale GitHub CI moet daarnaast lint, format, TypeScript/builds en Playwright blijven uitvoeren.
+- **Nog niet bewezen in deze PR:** daadwerkelijke audio-inferentie met QAT op de doeltelefoon, werkelijke piek-RAM/GPU-last, succesvolle cold/warm/offline modelstart en notitiekwaliteit. Dit vereist de echte hardwareproef uit issue #2; geef de PR geen productiekwaliteitsstempel alleen omdat CI slaagt.
 
 ## Herziening na gebruikerstest
 
 - Een smalle iconenbalk opent notities of instellingen. Naast de balk staan de campagneselectie en sessielogs; op mobiel klapt deze lijst open. Campagne-instellingen bevatten naam, beschrijving en woordenboek. De instellingenpagina toont direct modelkeuze en logexport, met het testlaboratorium als subpagina.
 - Grotere tekst en minder herhaalde copy; iedere pagina toont de buildcommit en een logexportknop.
-- Alleen Gemma 4 E2B via WebGPU. Ultravox en CPU-inferentie zijn verwijderd. De oudere Ultravox-metingen hieronder blijven historische onderbouwing voor die beslissing.
+- Alleen Gemma 4 E2B Mobile QAT via WebGPU. Ultravox en CPU-inferentie zijn verwijderd. De oudere Ultravox-metingen hieronder blijven historische onderbouwing voor die beslissing.
 - Automatisch laden bij opname/test, zonder verplichte kwaliteitstest vooraf; een geslaagde test ontlaadt het model niet. Menselijke controle blijft nodig.
 - Volledige installatiecontrole inclusief externe Gemma-gewichten, downloadvoortgang en hervatten. Missing-file-rejections en laadtimeouts worden zichtbaar en exporteerbaar.
 - Modelupdates volgen de gepinde revisie in een nieuwe appbuild; de app installeert geen ongecontroleerde upstream-revisie.
