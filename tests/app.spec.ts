@@ -406,11 +406,14 @@ test('QAT Mobile is de enige modelkeuze; opruimen wist alleen legacy cache', asy
     'https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX/resolve/old/config.json';
   const current =
     'https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX/resolve/70dab57c7bc59f33b4fc32809299cb8b4465e96c/config.json';
-  await page.evaluate(async ({ legacy, current }) => {
-    const cache = await caches.open('dnd-models-v1');
-    await cache.put(legacy, new Response('{}'));
-    await cache.put(current, new Response('{}'));
-  }, { legacy, current });
+  await page.evaluate(
+    async ({ legacy, current }) => {
+      const cache = await caches.open('dnd-models-v1');
+      await cache.put(legacy, new Response('{}'));
+      await cache.put(current, new Response('{}'));
+    },
+    { legacy, current },
+  );
   await page.reload();
   await page.getByRole('button', { name: 'Instellingen', exact: true }).click();
   await expect(
@@ -420,7 +423,9 @@ test('QAT Mobile is de enige modelkeuze; opruimen wist alleen legacy cache', asy
   await expect(
     page.getByRole('button', { name: 'Oude modelbestanden wissen' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Oude modelbestanden wissen' }).click();
+  await page
+    .getByRole('button', { name: 'Oude modelbestanden wissen' })
+    .click();
   await expect(
     page.getByRole('button', { name: 'Oude modelbestanden wissen' }),
   ).toHaveCount(0);
