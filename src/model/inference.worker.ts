@@ -165,9 +165,18 @@ self.onmessage = async ({ data }) => {
       networkAllowed = data.download;
       env.allowRemoteModels = data.download;
       stage('prepare-start');
-      await prepareModel(data.download, (label, percent) =>
-        self.postMessage({ id, progress: { label, percent } }),
-      );
+      let previousAssetStage = '';
+      await prepareModel(data.download, (label, percent) => {
+        const match = /^(Controleren|Downloaden): (onnx\/[a-z0-9_.-]+)$/.exec(label);
+        if (match) {
+          const key = match[1] + ':' + match[2];
+          if (key !== previousAssetStage) {
+            previousAssetStage = key;
+            stage(match[1] === 'Controleren' ? 'cache-check' : 'download-start', match[2]);
+          }
+        }
+        self.postMessage({ id, progress: { label, percent } });
+      });
       stage('prepare-ready');
       if (data.installOnly) {
         networkAllowed = false;
