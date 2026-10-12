@@ -33,7 +33,7 @@ let persistence: 'available' | 'unavailable' | 'write-failed' = 'unavailable';
 let previousRuns: SavedRun[] = [];
 const run: SavedRun = {
   build,
-  runId: (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)),
+  runId: globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36),
   startedAt: new Date().toISOString(),
   lastAt: new Date().toISOString(),
   phase: 'idle',
@@ -58,7 +58,14 @@ const savedFields: Record<string, readonly string[]> = {
   error: ['stage', 'name'],
   storage_state: ['reason', 'persisted', 'quota', 'usage'],
   storage_persist: ['result'],
-  pwa_state: ['reason', 'display', 'controlled', 'active', 'waiting', 'installing'],
+  pwa_state: [
+    'reason',
+    'display',
+    'controlled',
+    'active',
+    'waiting',
+    'installing',
+  ],
   pwa_installable: [],
   pwa_installed: [],
   gpu_state: ['webgpu', 'fp16', 'adapter'],
@@ -66,16 +73,58 @@ const savedFields: Record<string, readonly string[]> = {
   worker_heartbeat: ['elapsedMs'],
 };
 const safePhases = new Set([
-  'prepare-start', 'cache-check', 'cache-ok', 'cache-corrupt',
-  'download-start', 'download-ok', 'download-failed', 'prepare-ready',
-  'processor-start', 'processor-ready', 'onnx-start', 'onnx-ready',
-  'process-start', 'process-ready', 'load-failed',
+  'prepare-start',
+  'cache-check',
+  'cache-ok',
+  'cache-corrupt',
+  'download-start',
+  'download-ok',
+  'download-failed',
+  'prepare-ready',
+  'processor-start',
+  'processor-ready',
+  'onnx-start',
+  'onnx-ready',
+  'process-start',
+  'process-ready',
+  'load-failed',
 ]);
-const safeStatus = new Set(['idle', 'loading', 'ready', 'listening', 'paused', 'testing', 'stopping']);
-const safeReason = new Set(['startup', 'load', 'export', 'download', 'model-ready']);
-const safeSource = new Set(['cache', 'network', 'unsupported', 'performance-memory', 'user-agent-memory']);
-const safeDisplay = new Set(['browser', 'standalone', 'fullscreen', 'minimal-ui']);
-const safeResult = new Set(['granted', 'denied', 'already-granted', 'unsupported', 'error']);
+const safeStatus = new Set([
+  'idle',
+  'loading',
+  'ready',
+  'listening',
+  'paused',
+  'testing',
+  'stopping',
+]);
+const safeReason = new Set([
+  'startup',
+  'load',
+  'export',
+  'download',
+  'model-ready',
+]);
+const safeSource = new Set([
+  'cache',
+  'network',
+  'unsupported',
+  'performance-memory',
+  'user-agent-memory',
+]);
+const safeDisplay = new Set([
+  'browser',
+  'standalone',
+  'fullscreen',
+  'minimal-ui',
+]);
+const safeResult = new Set([
+  'granted',
+  'denied',
+  'already-granted',
+  'unsupported',
+  'error',
+]);
 const safeAdapter = /^[a-zA-Z0-9_-]{1,40}$/;
 const safeAsset = /^(?:onnx\/)?[a-z0-9_.-]{1,72}$/;
 const safeModel = /^[a-z0-9_-]{1,32}$/;
@@ -101,7 +150,10 @@ function safeEvent(event: Diagnostic): Diagnostic | null {
         (key === 'adapter' && safeAdapter.test(value)) ||
         (key === 'model' && safeModel.test(value)) ||
         (key === 'provider' && value === 'webgpu') ||
-        (key === 'name' && /^(?:Error|TypeError|RangeError|DOMException|AbortError)$/.test(value)) ||
+        (key === 'name' &&
+          /^(?:Error|TypeError|RangeError|DOMException|AbortError)$/.test(
+            value,
+          )) ||
         (key === 'stage' && /^[a-z_-]{1,32}$/.test(value));
       if (valid) data[key] = value;
     }
@@ -117,14 +169,16 @@ try {
       const parsed = JSON.parse(stored) as SavedJournal;
       if (parsed.version === 1 && Array.isArray(parsed.previous)) {
         const candidates = [parsed.active, ...parsed.previous];
-        previousRuns = candidates.filter(
-          (item): item is SavedRun =>
-            !!item &&
-            typeof item.lastAt === 'string' &&
-            Number.isFinite(Date.parse(item.lastAt)) &&
-            Date.now() - Date.parse(item.lastAt) < SEVEN_DAYS &&
-            Array.isArray(item.events),
-        ).slice(0, MAX_PREVIOUS_RUNS);
+        previousRuns = candidates
+          .filter(
+            (item): item is SavedRun =>
+              !!item &&
+              typeof item.lastAt === 'string' &&
+              Number.isFinite(Date.parse(item.lastAt)) &&
+              Date.now() - Date.parse(item.lastAt) < SEVEN_DAYS &&
+              Array.isArray(item.events),
+          )
+          .slice(0, MAX_PREVIOUS_RUNS);
       }
     }
   }
@@ -135,7 +189,8 @@ try {
 }
 
 function persist() {
-  if (persistence === 'unavailable' || typeof localStorage === 'undefined') return;
+  if (persistence === 'unavailable' || typeof localStorage === 'undefined')
+    return;
   try {
     const journal: SavedJournal = {
       version: 1,

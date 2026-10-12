@@ -16,8 +16,6 @@
   ],
   "id": "/",
   "scope": "/",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "prefer_related_applications": false
 }

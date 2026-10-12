@@ -101,7 +101,10 @@ let model: PreTrainedModel | null = null;
 let modelId = '';
 let busy = false;
 const stage = (phase: string, asset = '', ms = 0) =>
-  self.postMessage({ id: loadRequestId, diagnostic: { phase, ...(asset && { asset }), ms } });
+  self.postMessage({
+    id: loadRequestId,
+    diagnostic: { phase, ...(asset && { asset }), ms },
+  });
 async function generate(
   system: string,
   text: string,
@@ -167,12 +170,17 @@ self.onmessage = async ({ data }) => {
       stage('prepare-start');
       let previousAssetStage = '';
       await prepareModel(data.download, (label, percent) => {
-        const match = /^(Controleren|Downloaden): (onnx\/[a-z0-9_.-]+)$/.exec(label);
+        const match = /^(Controleren|Downloaden): (onnx\/[a-z0-9_.-]+)$/.exec(
+          label,
+        );
         if (match) {
           const key = match[1] + ':' + match[2];
           if (key !== previousAssetStage) {
             previousAssetStage = key;
-            stage(match[1] === 'Controleren' ? 'cache-check' : 'download-start', match[2]);
+            stage(
+              match[1] === 'Controleren' ? 'cache-check' : 'download-start',
+              match[2],
+            );
           }
         }
         self.postMessage({ id, progress: { label, percent } });

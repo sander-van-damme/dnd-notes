@@ -44,8 +44,8 @@ export async function platformSnapshot(reason: Reason) {
     // Service worker may be unavailable; never block normal operation.
   }
   try {
-    pwa.cacheNames = (await caches.keys()).filter((key) =>
-      key.startsWith('dnd-shell-') || key.startsWith('dnd-models-'),
+    pwa.cacheNames = (await caches.keys()).filter(
+      (key) => key.startsWith('dnd-shell-') || key.startsWith('dnd-models-'),
     );
   } catch {
     // Browser caches may be inaccessible.
@@ -74,8 +74,7 @@ export async function platformSnapshot(reason: Reason) {
   }
   try {
     const estimate = (await navigator.storage?.estimate?.()) as
-      | StorageWithDetails
-      | undefined;
+      StorageWithDetails | undefined;
     storage.quota = estimate?.quota ?? null;
     storage.usage = estimate?.usage ?? null;
     storage.usageDetails = estimate?.usageDetails ?? null;

@@ -366,7 +366,9 @@ export default function App() {
       if (e.data?.type === 'OFFLINE_READY') setShellReady(true);
     };
     navigator.serviceWorker?.addEventListener('message', message);
-    const controller = () => { void platformSnapshot('startup').catch(() => {}); };
+    const controller = () => {
+      void platformSnapshot('startup').catch(() => {});
+    };
     navigator.serviceWorker?.addEventListener('controllerchange', controller);
     if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       void navigator.serviceWorker
@@ -396,7 +398,10 @@ export default function App() {
       window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('appinstalled', installed);
       window.removeEventListener('beforeinstallprompt', installable);
-      navigator.serviceWorker?.removeEventListener('controllerchange', controller);
+      navigator.serviceWorker?.removeEventListener(
+        'controllerchange',
+        controller,
+      );
       window.removeEventListener('online', network);
       window.removeEventListener('offline', network);
       document.removeEventListener('visibilitychange', visibility);
@@ -1131,7 +1136,12 @@ export default function App() {
             <>
               <div className="page-heading">
                 <h1>Instellingen</h1>
-                <Button kind="secondary" onClick={() => { void exportLogs(); }}>
+                <Button
+                  kind="secondary"
+                  onClick={() => {
+                    void exportLogs();
+                  }}
+                >
                   <Download size={17} /> Logs exporteren
                 </Button>
               </div>
@@ -1790,7 +1800,12 @@ export default function App() {
             {import.meta.env.VITE_BUILD_COMMIT?.slice(0, 8) || 'development'}
           </span>
           {page !== 'models' && (
-            <button className="icon-button" onClick={() => { void exportLogs(); }}>
+            <button
+              className="icon-button"
+              onClick={() => {
+                void exportLogs();
+              }}
+            >
               <Download size={16} /> Logs exporteren
             </button>
           )}
