@@ -1,13 +1,24 @@
 # Implementatiestatus — 12 oktober 2026
 
-De technische blauwdruk blijft de productrichting. Deze implementatie is een testbaar prototype; niet alle onderzoeksgates zijn bewezen.
+De [technische blauwdruk](TECHNICAL_DESIGN.md) is op **12 oktober 2026** bijgesteld: **eerst snelle, betrouwbare lokale live transcriptie op de Windows-laptop (#35)**; **pas daarna** eenvoudige notitieaanvullingen uit het transcript en reeds bestaande notities (#33). Android (#32) is voor onbepaalde tijd uitgesteld en wordt alleen herbekeken als de gebruiker dat na voltooiing van de laptopvariant nog zinvol vindt.
 
-## Modelmigratie in deze wijziging (issue #2)
+## Actuele prioriteiten en bewezen voortgang
+
+- **P0 #35 — Nog niet geïmplementeerd:** geïsoleerde ASR-only-route (meertalige Whisper Tiny/Base zijn de eerste kandidaten), file- en live-microfoonproef, lokale transcriptweergave, kwaliteit en duurzame realtime doorvoer (**RTF < 1** op representatief materiaal). De huidige app heeft nog **geen bewezen snelle, correcte live transcriptie**.
+- **P0 #4 — Nog niet opgelost:** geverifieerde modelcache wordt bij **iedere start** opnieuw over ~2,57 GB gehasht. Een echte Windows-proef mat ~90,17 s controle; plan eenmalige streaming SHA-256 per installatie en snelle, versiegebonden cachecontrole bij warme start.
+- **P1 #33 — Later:** nieuw transcript plus huidige notities → korte **append-only tekstuele notitieaanvulling**, zonder strikte FACT/JSON/scene-opmaak; gebruiker blijft correcties controleren. Tweede model niet laten concurreren met realtime ASR zonder bewijs.
+- **P2:** #31 de oude Gemma-benchmark, #3 overbodige vision encoder alleen als Gemma behouden blijft, #34 verouderde markers-parser, #32 mobiele hardware.
+- **Al bewezen op echte laptop:** Windows Chrome 154, WebGPU `gen-12lp`: Gemma 4 QAT **15/15 assets**, `processor-ready`, `onnx-ready` en `model_ready`. Drie echte **20 s audiofragmenten** doorliepen twee inferentieaanroepen in 78,02/74,86/63,41 s (**RTF circa 3,60** over 60 s audio); `parse_result` telkens **0 feiten en unparsed=true**. Inhoudelijk resultaat dus niet geslaagd, ondanks werkende modelinitialisatie. Dit rechtvaardigt de vereenvoudigde ASR-first koers.
+- **Privacy:** alleen lokaal; tijdelijke audio blijft in RAM, transcript alleen lokaal in expliciet gekozen sessie, nooit audio of transcriptinhoud in technische logs. Modellen en bronbestanden blijven gepind en gecontroleerd.
+
+De hoofdstukken hieronder documenteren wat **wel al geïmplementeerd is met Gemma** en eerdere onderzoeksgates; ze betekenen niet dat het nieuwe Whisper/ASR-pad al bestaat.
+
+## Historische modelmigratie — gerealiseerd (issue #2)
 
 - De bedoelde standaard is nu **Gemma 4 E2B Mobile QAT ONNX** (`q2f16` voor audioencoder, embeddings en decoder; `fp16` voor vision), vastgelegd op revisie `70dab57c7bc59f33b4fc32809299cb8b4465e96c`. De oude ~4GB-modelroute is uit de normale selectie en het integriteitsmanifest gehaald.
 - De acht q2f16/fp16 ONNX-bestanden hebben upstream-geverifieerde SHA-256-controles; metadata en de externe datafiles zijn in het installatiemodel opgenomen. Er bestaat een gerichte verwijderactie voor oudere modelcache, zonder dat sessiegegevens of nieuw QAT-materiaal worden gewist.
 - Unit- en browserregressietests controleren de gekozen modelvariant, manifest-/cachecontract, onvolledige/corrupte offline downloads en opruiming van oude gewichten. De normale GitHub CI moet daarnaast lint, format, TypeScript/builds en Playwright blijven uitvoeren.
-- **Nog niet bewezen in deze PR:** daadwerkelijke audio-inferentie met QAT op de doeltelefoon, werkelijke piek-RAM/GPU-last, succesvolle cold/warm/offline modelstart en notitiekwaliteit. Dit vereist de echte hardwareproef uit issue #2; geef de PR geen productiekwaliteitsstempel alleen omdat CI slaagt.
+- **Achteraf vastgesteld:** QAT-initialisatie en echte audio-inferentie lukken op de Windows-laptop (#31), maar de snelheid en notitiekwaliteit halen de productdoelstelling niet. De Pixel 6a bleef crashen tijdens modelstart; mobiele compatibiliteit is nu bewust uitgesteld (#32) en geen verplichte gate. Koude/warme/offline herstelprestaties blijven te benchmarken.
 
 ## Herziening na gebruikerstest
 
@@ -37,8 +48,8 @@ De technische blauwdruk blijft de productrichting. Deze implementatie is een tes
 - Een echte Ultravox/WASM-proef in Chromium 154 op deze cloudmachine bewees downloaden met gewichtscontrole, offline herladen en audio-inferentie zonder externe netwerkrequests. De directe route gaf op het Engelse testfragment echter een algemene weigering en nul notitievoorstellen. De kwaliteitsgate bleef dicht. Deze configuratie is daarmee niet inhoudelijk goedgekeurd.
 - Die directe proef verwerkte 13 seconden audio in circa 197,49 seconden (RTF 15,19), op één CPU-thread zonder WebGPU-adapter. Dit is geen realtime configuratie en geen Pixel-meting.
 - De tweestapsroute op hetzelfde fragment kostte circa 587,01 seconden (RTF 45,15), eveneens zonder externe requests. De uitvoer verzon D&D-gebeurtenissen en volgde het markerprotocol niet; er werden nul notitievoorstellen geaccepteerd. Ook deze route haalt de inhoudelijke gate niet. Een technisch voltooide run is dus nadrukkelijk geen goedgekeurd modelrecept.
-- Gemma-inferentie en WebGPU-compatibiliteit zijn niet automatisch bewezen door installatie of een modelkaart. De app vereist een proef op het concrete toestel.
-- Nederlandse/Vlaamse feitelijke kwaliteit, realtime 30–60 s notitievertraging, maximaal circa 4 GB totaal browsergeheugen en 30–60 minuten thermische stabiliteit op Pixel 6a vereisen fysieke toesteltests met legaal gebruikersmateriaal.
+- Gemma-inferentie en WebGPU-compatibiliteit zijn op de Windows-laptop inmiddels daadwerkelijk bewezen, **niet** zijn voldoende snelheid, betrouwbare Nederlandse transcriptie of notitie-inhoud bewezen. Nieuwe ASR-modellen hebben elk eigen hardware- en kwaliteitsmetingen nodig.
+- De eerste mijlpaal beoordeelt Nederlandse/Vlaamse transcriptie, D&D-eigennamen, lage latency, begrensde backlog en lange sessiestabiliteit op de Windows-laptop. De oude Pixel 6a-geheugen- en thermische targets zijn **geen actuele acceptatiecriteria**; #32 bewaart die historische onderzoeksvragen.
 - De energie-VAD en eenvoudige streaming box-filterresampling zijn baselines; Silero/WebRTC-VAD en betere resampling moeten op dezelfde audio worden vergeleken.
 - Er is geen claim dat handmatige kwaliteitsbevestiging alle hallucinatierisico's afdekt. Een beoordeling geldt alleen voor de geteste configuratie en ontgrendelt geen functies.
 
