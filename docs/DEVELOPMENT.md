@@ -10,7 +10,9 @@
 
 De app gebruikt geen backend, databasecontainer, API-key, externe inferentie of account. Een modeldownload gebeurt uitsluitend na een gebruikersactie. Daarvoor zijn `huggingface.co` en de bijbehorende Hugging Face CDN/Xet-bestandsdomeinen nodig; tijdens verwerking staan remote modelrequests uit.
 
-## Actueel modelprofiel — Gemma 4 E2B Mobile QAT ONNX
+## Huidig geïmplementeerd profiel — Gemma 4 E2B Mobile QAT ONNX
+
+**Productprioriteit sinds 12 oktober 2026:** dit is de bestaande **benchmark**, niet het reeds gebouwde eindproduct. Eerst gaat #35 over **live transcriptie op Windows** met een gespecialiseerd, nog te implementeren lokaal ASR-model (multilinguale Whisper Tiny/Base als eerste kandidaten). Notities uit transcript zijn pas de latere stap #33. De Pixel 6a-crash wordt alleen opnieuw onderzocht na expliciet gebruikersbesluit (#32).
 
 - Modelbron: `onnx-community/gemma-4-E2B-it-qat-mobile-ONNX`, vastgepinde revisie `70dab57c7bc59f33b4fc32809299cb8b4465e96c`, Apache-2.0.
 - De actieve WebGPU-bestanden zijn `audio_encoder_q2f16`, `embed_tokens_q2f16`, `decoder_model_merged_q2f16` en voorlopig `vision_encoder_fp16`, inclusief elk `.onnx_data`-bestand. De totale grootte van deze acht ONNX-bestanden bedraagt **2.571.751.525 bytes (2,57 GB)**. Dit is niet hetzelfde als gemeten RAM-/VRAM-verbruik; tokenizer en overige metadata komen erbij.
@@ -18,7 +20,7 @@ De app gebruikt geen backend, databasecontainer, API-key, externe inferentie of 
 - Het oude `onnx-community/gemma-4-E2B-it-ONNX`-model wordt niet meer aangeboden of gedownload. Als oudere bestanden aanwezig zijn in de modelcache, biedt Instellingen **Oude modelbestanden wissen**. Deze actie verwijdert alleen obsolete cache-items; actieve QAT-gewichten, campagnes en notities blijven ongemoeid.
 - De vision encoder blijft voorlopig inbegrepen omdat de bestaande loader hem mogelijk vereist. Alleen #3 onderzoekt weglaten; dit blokkeert de QAT-migratie niet.
 
-**Release-/hardwaregate voor issue #2:** voer op de smartphone waarop het oude model crashte én op een laptop een echte, toestemming-gedekte audio→Nederlandse-notitiesproef uit. Controleer browser/build, WebGPU + shader-f16, alle q2f16-sessies, download en checksumcontrole, geslaagde generatie, geheugenbelasting/fouten, offline herstart en herhaald laden. Een groene CI met mocks volstaat **niet** om #2 als opgelost te sluiten. Geen terugval naar het oude 4GB-model of een cloudprovider.
+**Actuele gates:** de QAT-code-migratie is afgesloten in #2. Een echte Windows Chrome 154-proef bevestigde laden en inferentie met Gemma 4 QAT, maar niet bruikbare realtime notities (#31). Voor de **nieuwe, nog te implementeren ASR-only-route #35**: meet lokaal Vlaams/Nederlands transcript, tijdstempels, RTF, backlog, warme/koude laadtijd, offline herstart en feitelijke nauwkeurigheid tegenover referentieaudio op de Windows-laptop. De oude verplichte Android-/Pixel-releasegate vervalt; #32 is on hold en optioneel. CI-mocks bewijzen geen echte ASR-inferentie. Geen cloudprovider of audio-upload.
 
 ## Controles
 
@@ -43,9 +45,9 @@ CI installeert ook de Linux-browserdependencies. De normale tests downloaden gee
 
 1. Gebruik HTTPS en een browser met WebGPU en `shader-f16`. CPU-inferentie is verwijderd. ONNX gebruikt intern nog WASM-runtimebestanden voor de WebGPU-engine; dit is geen CPU-fallback.
 2. Open het instellingenicoon → **Lokale modellen**. De Gemma-tegel toont de volledige WebGPU-downloadgrootte, aanwezige bytes en installatiestatus. Alleen een complete set van ONNX-gewichten, externe `.onnx_data`-bestanden en processorbestanden geldt als geïnstalleerd. Een oudere gecachete revisie toont **Bijwerken** wanneer deze app een nieuwere gepinde revisie vereist. Er wordt niet automatisch een willekeurige upstream-modelversie geladen.
-3. **Downloaden** bewaart de benodigde bestanden en controleert de gewichtschecksums. Een onderbroken download kan hervatten. **Start luisteren** en **Start test** doen het laden automatisch, inclusief downloaden van ontbrekende bestanden indien nodig. Na een geslaagde test of opname blijft dezelfde modelworker beschikbaar. Alleen expliciet annuleren, verwijderen, sluiten/herladen of een fatale runtimefout beëindigt hem.
+3. **Downloaden** bewaart de benodigde bestanden en controleert de gewichtschecksums. Een onderbroken download kan hervatten. **Start luisteren** en **Start test** doen het laden automatisch, inclusief downloaden van ontbrekende bestanden indien nodig. Na een geslaagde test of opname blijft dezelfde modelworker beschikbaar. Alleen expliciet annuleren, verwijderen, sluiten/herladen of een fatale runtimefout beëindigt hem. **Bekend performanceprobleem (#4):** `src/model/install.ts` leest en SHA-256-hasht momenteel ook bij elke warme modelstart alle ~2,57 GB opnieuw; dat kostte op de Windows-laptop ongeveer **90,17 s**. Een checksum is dus reeds aanwezig; onderzoek éénmalige SHA-verificatie bij installatie plus snelle gepinde cache-/metadata-index bij warme start, met fallback bij beschadiging of cacheverlies.
 4. Gebruik **Testlaboratorium** met een kort eigen fragment. Controleer de uitvoer op namen, feiten en verzinsels. Beoordeling is geen verplichte ontgrendeling voor live sessies. Deze wijziging volgt de actuele gebruikersinstructie; modelkwaliteit blijft experimenteel.
-5. Sluit de pagina, open haar offline en herhaal een korte proef. Test snelheid, geheugen en temperatuur vervolgens op het doeltoestel, inclusief Pixel 6a. De cloudtestomgeving heeft geen bruikbare WebGPU-adapter; tests met workerstubs bewijzen geen GPU-inferentie.
+5. Sluit de pagina, open haar offline en herhaal een korte proef. Test snelheid, geheugen en stabiele verwerking vervolgens op de **Windows-laptop**. De cloudtestomgeving heeft geen bruikbare WebGPU-adapter; tests met workerstubs bewijzen geen GPU-inferentie. Smartphone-tests zijn nu optioneel en uitgesteld (#32).
 
 `npm run test:model` is een optionele echte Gemma-proef. Start eerst de productiepreview en gebruik `AUDIO_FIXTURE=/pad/naar/fragment.wav npm run test:model`. Zet eventueel `HEADLESS=0` en `MODEL_PROFILE_DIR=/pad/naar/testprofiel` om een zichtbaar, blijvend browserprofiel te gebruiken. Zonder profielpad wordt het tijdelijke profiel na afloop verwijderd. De eerste proef downloadt meerdere GB. Het script weigert een machine zonder WebGPU met `shader-f16`; het bevat geen modelstub.
 
@@ -82,7 +84,7 @@ Publiceer de inhoud van `dist/` via HTTPS. `public/_headers` bevat voorbeeldhead
 - `Cross-Origin-Embedder-Policy: credentialless`
 - de CSP en `Referrer-Policy` uit `_headers`.
 
-Vite dev/preview geeft de isolatieheaders mee. Mobiele toegang via een LAN-IP zonder HTTPS biedt geen microfoon/secure context. Een cloud- of desktopbrowser is geen vervanging voor een echte Pixel-test.
+Vite dev/preview geeft de isolatieheaders mee. Mobiele toegang via een LAN-IP zonder HTTPS biedt geen microfoon/secure context. **Voor #35 is de echte Windows-laptop de verplichte hardwareproef**; pas voor eventueel toekomstig mobiel werk (#32) zijn afzonderlijke Android-/Pixel-tests relevant.
 
 De service worker cachet alleen de versievastgelegde app-shell en lokale runtime-assets. Modellen staan in een aparte cache. Hij onderschept geen externe requests en bewaart geen audio. Een update wacht tot bestaande tabs gesloten zijn; geen geforceerde reload tijdens een sessie. Controleer offline na een volledig afgeronde service-workerinstallatie. Browseropslag kan worden geweigerd, geleegd of verwijderd door het besturingssysteem; exporteer belangrijke notities.
 
