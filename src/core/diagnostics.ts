@@ -136,7 +136,8 @@ const safeResult = new Set([
   'error',
 ]);
 const safeAdapter = /^[a-zA-Z0-9_-]{1,40}$/;
-const safeAsset = /^(?:onnx\/)?[a-z0-9_.-]{1,72}$/;
+const safeAsset =
+  /^onnx\/(?:audio_encoder|vision_encoder|embed_tokens|decoder_model_merged)_(?:q2f16|fp16)\.onnx(?:_data)?$/;
 const safeModel = /^[a-z0-9_-]{1,32}$/;
 
 function safeEvent(event: Diagnostic): Diagnostic | null {
