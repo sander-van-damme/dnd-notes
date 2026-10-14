@@ -1,24 +1,23 @@
-# Parakeet TDT v3 Multilingual — WebGPU — Realtime
+# Parakeet TDT v3 Multilingual — WebGPU — Record & Transcribe
 
-**Status:** map voorbereid; er is nog **geen transcriptie of benchmarkresultaat** toegevoegd.
+**Huidige testmodus: Record & Transcribe (bestand opnemen/inladen en daarna transcriberen), niet realtime.**
+
+**Status:** [run 1](run-01/transcript.md) is aangemaakt, maar de transcriptie is nog leeg. Er zijn nog geen scores of resultaten opgeslagen.
 
 ## Testomgeving
 
-- Model zoals weergegeven door de testpagina: **Parakeet TDT v3 (Multilingual)**.
-- Testpagina: <https://webgpu.studio/speech-to-text>
-- Uitvoering volgens de interface: **WebGPU**.
-- Geteste modus: **Realtime** (live microfooningang). De variant **Record & Transcribe** wordt later afzonderlijk getest en heeft nog geen resultaten. Die modus mag niet met deze realtime proef worden samengevoegd.
-- Exacte modelrevisie, quantisatie en overige parameters: **nog te documenteren**.
+- Beoogd model: **Parakeet TDT v3 Multilingual**. Controleer bij de run de exacte modelvariant/revisie.
+- Tool voor de opgenomen-audiotest: <https://ysdede.github.io/parakeet.js/>.
+- Modus: **Record & Transcribe**. Verwerk een vooraf opgenomen audiobestand; géén live streamingtest.
+- Backend: **controleer bij de run** of WebGPU daadwerkelijk actief is; de mapnaam alleen is geen bewijs van de gebruikte backend.
+- Quantisatie, instellingen, apparaat en verwerkingstijden: nog te documenteren.
+- De eerder bekeken realtime microfoontest op <https://webgpu.studio/speech-to-text> valt **buiten deze benchmarkrun**. Resultaten van beide modi mogen niet zonder toelichting worden samengevoegd.
 
-## Resultaten opslaan
+## Run 1 invullen
 
-Maak per echte testrun een submap (`run-01/`, `run-02/`, …) en bewaar daarin:
+1. Gebruik de vaste [voorleestekst](../../reference.md) en, voor een eerlijke vergelijking, precies dezelfde opgenomen audio als bij andere modellen.
+2. Kopieer de **volledige, ongewijzigde output** naar [`run-01/transcript.md`](run-01/transcript.md), zonder zelf fouten te verbeteren of extra kopjes toe te voegen. Het bestand is nu opzettelijk leeg.
+3. Noteer bij voorkeur in `run-01/metadata.md` de gebruikte model- en toolversie, instellingen, audio-ID, backend, computer en verwerkingstijd. Gebruik daarvoor de [metadatatemplate](../_metadata-template.md).
+4. Beoordeel de transcriptie pas achteraf tegenover de referentie (met dezelfde normalisatieregels voor alle modellen).
 
-- `transcript.txt` — **onbewerkte modeluitvoer** (ook fouten laten staan);
-- `metadata.md` — kopie van [`../_metadata-template.md`](../_metadata-template.md), met de gebruikte instellingen, microfoon/audiofile en timings.
-
-De voorleestekst staat in [`../../reference.md`](../../reference.md). Dit is een **live realtime test**. Documenteer opnameapparaat, omstandigheden en eventuele andere apps die tegelijk de microfoon gebruiken. Voor de toekomstige **Record & Transcribe**-vergelijking is precies hetzelfde audiobestand hergebruiken de voorkeur.
-
-### Opmerking over microfoontests
-
-Een foutieve ChatGPT-spraakinvoer op de Windows-laptop terwijl deze WebGPU Studio-pagina ook microfoontoegang had, is **geen gemeten fout van Parakeet**. Meerdere gelijktijdige microfoongebruikers zijn een te onderzoeken omstandigheid; noteer bij toekomstige live tests welke apps/sites de microfoon gebruikten. Vergelijk een proef met alleen WebGPU Studio en een proef met beide apps open om te controleren of de fout reproduceerbaar is.
+Maak voor nieuwe proeven aparte mappen (`run-02/`, `run-03/`, enzovoort), zodat de originele uitvoer van run 1 behouden blijft.
