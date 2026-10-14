@@ -23,3 +23,7 @@ results/
 Voer voor een vergelijking bij voorkeur **dezelfde opname** in bij alle modellen. Bewaar een eventuele opname met eigen toestemming op een geschikte plaats; ze is niet nodig om deze tekstbestanden te versiebeheren.
 
 **Let op:** een resultaatsubmap per **run** maakt het mogelijk dezelfde modelversie meerdere keren te testen zonder voorgaande resultaten te overschrijven.
+
+## Parakeet Web Ultra (meerdere backends en precisies)
+
+De [WER-export met zes ruwe modeltranscripties](../../parakeet-web-performance/2026-10-14/custom-mp3-wer-run-02/README.md) staat bij de bijbehorende performance- en omgevingsrapporten. Dit is **niet** dezelfde testconfiguratie als de nog lege `parakeet-tdt-v3-multilingual-webgpu/run-01/transcript.md`; de resultaten van de verschillende Parakeet-webapps en runs mogen niet door elkaar worden gehaald.
