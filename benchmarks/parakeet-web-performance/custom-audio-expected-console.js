@@ -1,8 +1,8 @@
 // Parakeet Web 11.4.0: temporary Chrome DevTools console helper.
 // Use only on https://parakeetweb.olicorne.org/ after a fresh page load.
 // - Replaces the hardcoded benchmark/jfk.mp3 with your own MP3.
-// - Substitutes the JFK expected sentence with your D&D reference for the
-//   existing in-app LCS similarity metric.
+// - Bundles the D&D reference in the script, avoiding CSP-blocked GitHub fetch.
+// - Substitutes that reference for JFK when scoring in-app LCS similarity.
 // - Captures the last timed SHORT-profile transcript for each successful model
 //   combination; computes REAL WER (S+D+I)/referenceWords separately.
 // - Exports a SIDE-CAR JSON with WER and raw transcripts, NOT a modified
@@ -10,8 +10,14 @@
 // Warning: uses short-lived monkey patches on String.prototype and console.log;
 // refresh the page to restore all browser behavior if anything looks odd.
 (async () => {
-  const REFERENCE_URL =
-    "https://raw.githubusercontent.com/sander-van-damme/dnd-notulist/main/benchmarks/dnd-session-nl/reference.md";
+  // Bundled snapshot of the repository's reference.md. The live Parakeet
+  // website's Content Security Policy forbids external GitHub requests,
+  // so NO network request is needed for the reference.
+  // If reference.md changes, regenerate this snapshot, or set
+  // window.__dndBenchReferenceText before running this helper.
+  const BUNDLED_REFERENCE = "Oké, we pikken de sessie weer op. Het is kwart voor twaalf in Grijzehaven. Buiten raast een onweersbui en de kerkklok slaat drie keer, hoewel het nog geen middernacht is. Jullie zitten in de herberg Het Koperen Hert. De waardin, Edda Voss, zet drie mokken op tafel. Aan haar linkermouw hangt een rood lint. Wat doen jullie?\n\nIk speel Bram, de dwarf fighter. Ik wil weten of iemand ons bespioneert. Mag ik een Perception check rollen?\n\nJa, gooi een d20 en tel je modifier erbij.\n\nDat is een negen, plus vier is dertien.\n\nMet dertien zie je een vrouw in een zwarte mantel, helemaal achteraan in de herberg. Ze schuift een verzegelde brief onder haar bord zodra je haar aankijkt. Daarna verlaat ze haastig de herberg.\n\nIk ben Liora, de tiefling wizard. Ik dacht eraan om Detect Magic te casten. Wacht, als ritual duurt dat tien minuten extra. Ik doe liever eerst een Insight check.\n\nDat mag, maar je hebt disadvantage omdat je de vrouw nauwelijks hebt kunnen zien.\n\nMijn eerste roll is zeventien en mijn tweede is zes. Met mijn modifier van plus twee is dat dus acht.\n\nMet een acht leer je niets extra. Net dan komt er een bode binnen. Kapitein Veyra zoekt avonturiers: de kaartenmaker Nerin Vale is verdwenen. Hij werd gisteren voor het laatst gezien bij de oude molen, ten oosten van Grijzehaven. De beloning is honderd gold pieces als jullie hem levend terugbrengen. Volgens de bode had Nerin een gouden medaillon bij zich. Nee, sorry, ik bedoel een zilveren sleutel. Dat is belangrijk.\n\nDan wil ik nog een healing potion kopen. Hoeveel kost die?\n\nVijftig gold pieces. Je koopt één potion, niet twee. Daarna vertrekken jullie langs de rivier richting de oude molen.\n\nIk ben Arin, de half-elf rogue. Ik loop een stukje voor de groep uit en kijk of ik vijanden zie.\n\nVoor de molen zitten twee goblins te dobbelen. Naast hen ligt een wolf, vastgebonden aan een paal. Je kunt de achterdeur bereiken zonder langs hen te lopen, maar dan moet je een Stealth check halen.\n\nOmdat het donker is, krijg ik advantage, toch?\n\nJa. Rol twee d20's en neem de hoogste uitkomst.\n\nIk rol een elf en een achttien. Met plus vijf op Stealth is dat drieëntwintig.\n\nJullie sluipen ongezien voorbij de goblins, maar de wolf begint te grommen. Vanuit de molen roept iemand: Help, ik zit opgesloten onder de vloer!\n\nIk wil geen combat beginnen. Liora, kun jij met Mage Hand de grendel van de achterdeur openmaken?\n\nDat lukt, zodra ik dichterbij sta. Mage Hand heeft maar een range van dertig feet.\n\nDe deur gaat open. Onder een houten luik vinden jullie Nerin Vale. Hij leeft, maar is gewond. Naast hem staat een kleine kist met het symbool van een zwarte zon. De zilveren sleutel past op het slot van die kist.\n\nDe kist laten we dicht. We helpen Nerin naar buiten en brengen hem terug naar kapitein Veyra. Dat zwarte-zonsymbool vertellen we er ook bij.\n\nPrima. Jullie verlaten de molen zonder de kist te openen. Iedereen krijgt honderd experience points voor deze scène. De beloning van honderd gold pieces moeten jullie nog ophalen in Grijzehaven.\n";
+  const BUNDLED_REFERENCE_SOURCE =
+    "bundled: benchmarks/dnd-session-nl/reference.md (blob da04174998108e39bcb044a7c20936a16b362d76)";
   const JFK_EXPECTED =
     "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.";
 
@@ -29,12 +35,8 @@
     expected = manualRef;
     referenceSource = "window.__dndBenchReferenceText";
   } else {
-    const response = await fetch(REFERENCE_URL, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error("Cannot load D&D expected text: HTTP " + response.status);
-    }
-    expected = await response.text();
-    referenceSource = REFERENCE_URL;
+    expected = BUNDLED_REFERENCE;
+    referenceSource = BUNDLED_REFERENCE_SOURCE;
   }
   expected = expected.replace(/\s+/g, " ").trim();
   if (expected.length < 100) {

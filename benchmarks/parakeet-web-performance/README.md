@@ -9,10 +9,10 @@ Dit zijn **geen** resultaten van de Nederlandse D&D-voorleesbenchmark en bevatte
 
 ## Eigen MP3 met correcte WER: tijdelijke DevTools-helper
 
-[**custom-audio-expected-console.js**](custom-audio-expected-console.js) (getest met een gesimuleerde Parakeet Web 11.4.0-uitvoering, **niet** op de live website).
+[**custom-audio-expected-console.js**](custom-audio-expected-console.js) (getest met een gesimuleerde Parakeet Web 11.4.0-uitvoering, **niet** op de live website. De referentietekst wordt lokaal uit de helper geladen).
 
 1. Open [Parakeet Web](https://parakeetweb.olicorne.org/) en druk op **F12 → Console**. Kopieer de **volledige inhoud** van de JavaScript-helper en voer deze uit. Kies de eigen MP3.
-2. De helper haalt standaard [reference.md](../dnd-session-nl/reference.md) op als *expected text*. Wanneer de opname afwijkt van wat letterlijk in dit script staat, stel **vóór het uitvoeren** van de helper `window.__dndBenchReferenceText = "je gecontroleerde letterlijke transcript hier"` in. Gebruik hiervoor bij voorkeur een echt gecorrigeerd transcript van de opname.
+2. De helper bevat een **ingebouwde momentopname** van [reference.md](../dnd-session-nl/reference.md), zodat Parakeet Web geen door zijn Content Security Policy geblokkeerde verbinding met GitHub hoeft te maken. Voor een afwijkende opname kun je **vóór het uitvoeren** `window.__dndBenchReferenceText = "je gecontroleerde letterlijke transcript hier"` instellen. De ingebouwde tekst wordt niet automatisch bijgewerkt als `reference.md` later verandert.
 3. Zet bij MP3-bestanden **langer dan 90 seconden Long Audio Profile uit**: die stand verwerkt dan exact dezelfde audio een tweede keer en kost dubbel rekenwerk.
 4. Start de normale ingebouwde benchmark met de gewenste precisies/backends. In de Console verschijnt na elke geslaagde *short*-profile-uitvoer een `[D&D WER]`-regel.
 5. Na afloop typ je `__dndBenchShowWer()` in de Console voor een tabel. Download met `__dndBenchDownloadWer()` een **extra JSON-bestand**, inclusief WER, substituties/deleties/inserties en het **letterlijke ruwe transcript** per geslaagde modelcombinatie.
