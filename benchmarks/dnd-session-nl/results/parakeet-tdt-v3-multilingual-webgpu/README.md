@@ -1,4 +1,4 @@
-# Parakeet TDT v3 Multilingual — WebGPU
+# Parakeet TDT v3 Multilingual — WebGPU — Realtime
 
 **Status:** map voorbereid; er is nog **geen transcriptie of benchmarkresultaat** toegevoegd.
 
@@ -7,6 +7,7 @@
 - Model zoals weergegeven door de testpagina: **Parakeet TDT v3 (Multilingual)**.
 - Testpagina: <https://webgpu.studio/speech-to-text>
 - Uitvoering volgens de interface: **WebGPU**.
+- Geteste modus: **Realtime** (live microfooningang). De variant **Record & Transcribe** wordt later afzonderlijk getest en heeft nog geen resultaten. Die modus mag niet met deze realtime proef worden samengevoegd.
 - Exacte modelrevisie, quantisatie en overige parameters: **nog te documenteren**.
 
 ## Resultaten opslaan
@@ -16,7 +17,7 @@ Maak per echte testrun een submap (`run-01/`, `run-02/`, …) en bewaar daarin:
 - `transcript.txt` — **onbewerkte modeluitvoer** (ook fouten laten staan);
 - `metadata.md` — kopie van [`../_metadata-template.md`](../_metadata-template.md), met de gebruikte instellingen, microfoon/audiofile en timings.
 
-De voorleestekst staat in [`../../reference.md`](../../reference.md). Gebruik voor vergelijkbare resultaten bij voorkeur **hetzelfde audiobestand** voor alle modellen, niet telkens een nieuwe live voorlezing.
+De voorleestekst staat in [`../../reference.md`](../../reference.md). Dit is een **live realtime test**. Documenteer opnameapparaat, omstandigheden en eventuele andere apps die tegelijk de microfoon gebruiken. Voor de toekomstige **Record & Transcribe**-vergelijking is precies hetzelfde audiobestand hergebruiken de voorkeur.
 
 ### Opmerking over microfoontests
 
