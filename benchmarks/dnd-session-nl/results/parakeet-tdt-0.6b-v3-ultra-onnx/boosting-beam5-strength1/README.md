@@ -1,6 +1,6 @@
 # Test C — phrase boosting met Beam Width 5 (14 oktober 2026)
 
-Vergelijking van **dezelfde beoogde D&D-opname** met eerdere tests: [zonder boosting (baseline)](../2026-10-14/README.md) en [phrase boosting met Beam Width 1 (test B)](../2026-10-14-phrase-boosting-fp16-beam1/README.md).
+Vergelijking van **dezelfde beoogde D&D-opname** met eerdere tests: [zonder boosting (baseline)](../baseline-no-boosting/README.md) en [phrase boosting met Beam Width 1 (test B)](../boosting-beam1-strength1/README.md).
 
 ## Originele bestanden
 

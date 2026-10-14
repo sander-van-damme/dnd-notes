@@ -2,13 +2,13 @@
 
 ## Kernresultaat: identieke transcriptie
 
-Bij de test met boost strength **2** en beam width **5** is de herkende transcriptie **letterlijk identiek (volledige string gelijk)** aan [test C met strength 1](../2026-10-14-phrase-boosting-fp16-beam5/README.md), met hetzelfde aantal woordfouten. **Er is dus geen aantoonbare kwaliteitswinst** in deze opname door de boost strength van 1 naar 2 te verhogen.
+Bij de test met boost strength **2** en beam width **5** is de herkende transcriptie **letterlijk identiek (volledige string gelijk)** aan [test C met strength 1](../boosting-beam5-strength1/README.md), met hetzelfde aantal woordfouten. **Er is dus geen aantoonbare kwaliteitswinst** in deze opname door de boost strength van 1 naar 2 te verhogen.
 
 ## Originele uploads
 
 - [**wer.json**](wer.json) — ongewijzigde upload `parakeet-web-custom-mp3-wer-beam5-strength2.json`, inclusief volledige ruwe transcriptie.
 - [**benchmark.json**](benchmark.json) — ongewijzigde upload `benchmark-beam5-strength2.json`, inclusief verwerkingstijd en configuratie.
-- Vergelijkingsbasis: [**test C (strength 1)**](../2026-10-14-phrase-boosting-fp16-beam5/README.md); oorspronkelijke [**baseline zonder boosting**](../2026-10-14/README.md).
+- Vergelijkingsbasis: [**test C (strength 1)**](../boosting-beam5-strength1/README.md); oorspronkelijke [**baseline zonder boosting**](../baseline-no-boosting/README.md).
 - Beoogde woordenlijst: [**11 custom phrases**](../phrase-boosting-test-b.txt).
 
 De bronbestanden werden bij het committen **byte-voor-byte** gecontroleerd aan de hand van hun Git-blobhashes. SHA-256 van de originele uploads: WER `ee9a09bcbcb171b631487cd7e61fd57dc0632f60360c25421a01e721105e9685`; benchmark `617d0f0827180703a4b88c287a1d320479461e0b81cdd98408b7463cd90c5f04`.
@@ -32,7 +32,7 @@ De bronbestanden werden bij het committen **byte-voor-byte** gecontroleerd aan d
 | Test C, boosting aan | 5 | 1 | **65 (55/6/4)** | **12,29%** | **8,70%** |
 | **Test D, boosting aan** | **5** | **2** | **65 (55/6/4)** | **12,29%** | **8,70%** |
 
-¹ Aanvullende, beperkte normalisatie van losse Nederlandse getalwoorden naar cijfers, identiek aan de [baselineanalyse](../2026-10-14/README.md). Omdat test C en D letterlijk dezelfde herkende tekst én referentie hebben, is ook deze afgeleide score noodzakelijk gelijk (**46 woordbewerkingen op 529 woorden**).
+¹ Aanvullende, beperkte normalisatie van losse Nederlandse getalwoorden naar cijfers, identiek aan de [baselineanalyse](../baseline-no-boosting/README.md). Omdat test C en D letterlijk dezelfde herkende tekst én referentie hebben, is ook deze afgeleide score noodzakelijk gelijk (**46 woordbewerkingen op 529 woorden**).
 
 ## Belangrijkste betekenisvolle fouten blijven aanwezig
 

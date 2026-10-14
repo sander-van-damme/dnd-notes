@@ -1,6 +1,6 @@
 # Phrase boosting — fp16, Beam Width 1 (14 oktober 2026)
 
-Dit is **test B** van onze Nederlandse D&D-transcriptiebenchmark, vergeleken met de [bestaande fp16-baseline zonder boosting](../2026-10-14/README.md).
+Dit is **test B** van onze Nederlandse D&D-transcriptiebenchmark, vergeleken met de [bestaande fp16-baseline zonder boosting](../baseline-no-boosting/README.md).
 
 ## Originele exports
 
