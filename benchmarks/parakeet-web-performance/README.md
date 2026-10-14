@@ -4,8 +4,9 @@ Hier bewaren we de **ruwe exportbestanden** van ingebouwde hardware- en snelheid
 
 - [Parakeet Web: vaste JFK-clip (14 oktober 2026)](2026-10-14/README.md): Parakeet Ultra, WASM en WebGPU-hybrid, 11 s/90 s testfragment.
 - [Parakeet Web: eigen MP3 van 209,43 seconden (14 oktober 2026)](2026-10-14/custom-mp3-long-profile-run-01/README.md): dezelfde opname in short en long, met incorrecte standaard-JFK-similarity; inclusief [console-helper voor eigen audio, expected text en WER](custom-audio-expected-console.js).
+- [Parakeet Web: WER-console-resultaten (14 oktober 2026)](2026-10-14/custom-mp3-wer-console-results.md): zes configuraties tegenover 529 referentiewoorden; handmatig overgenomen, zonder ruwe transcripties.
 
-Dit zijn **geen** resultaten van de Nederlandse D&D-voorleesbenchmark en bevatten geen D&D-transcriptie of D&D-WER. Zie voor de eigenlijke herkenningsvergelijkingen [de D&D-benchmark](../dnd-session-nl/README.md).
+De originele JFK-performancebenchmark is **geen** nauwkeurigheidstest. Voor de Nederlandse [D&D-voorleesbenchmark](../dnd-session-nl/README.md) bewaren we afzonderlijk de **voorlopige WER-console-resultaten**; de ruwe WER-transcripties zijn nog niet aangeleverd.
 
 ## Eigen MP3 met correcte WER: tijdelijke DevTools-helper
 
