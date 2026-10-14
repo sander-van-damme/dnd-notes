@@ -33,6 +33,8 @@ Alle waarden zijn onafhankelijk nagerekend volgens **`(substituties + deleties +
 
 **Opmerking:** van de oorspronkelijke 529 referentiewoorden blijven ook na deze bewerking 529 tokens over. Het betreft dus niet een gunstiger score door woorden willekeurig weg te laten.
 
+**Exacte normalisatiemapping, voor reproduceerbaarheid:** eerst lowercase en de door Parakeet gehanteerde interpunctie-/witruimtenormalisatie; daarna per volledig woord `één→1`, `twee→2`, `drie→3`, `vier→4`, `vijf→5`, `zes→6`, `acht→8`, `negen→9`, `tien→10`, `elf→11`, `dertien→13`, `zeventien→17`, `achttien→18`, `drieëntwintig→23`, `dertig→30`, `vijftig→50` en `honderd→100`. Het onbepaalde lidwoord `een` blijft ongewijzigd. Geen samenvoeging van woorddelen, eigennamen of Engelse D&D-termen.
+
 ## Inhoudelijke fouten: cruciaal voor sessienotities
 
 In **alle zes** ruwe transcripties treden onder meer deze verschillen met de referentie op:
