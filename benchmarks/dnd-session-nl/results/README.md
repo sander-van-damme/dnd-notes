@@ -1,20 +1,22 @@
 # Modelresultaten
 
-Maak **per model én configuratie** een eigen map; houd herhaalde runs uit elkaar. Bijvoorbeeld:
+Maak **per model én configuratie** een eigen map en daaronder een aparte map voor elke run; houd herhaalde runs uit elkaar. Bijvoorbeeld:
 
 ```text
 results/
-  whisper-small-2026-10-14-run-01/
-    transcript.txt
-    metadata.md
-    notes.md                  # alleen indien getest
-  gemma-4-e2b-run-01/
-    transcript.txt            # indien beschikbaar
-    metadata.md
-    notes.md                  # indien getest
+  parakeet-tdt-v3-multilingual-webgpu/
+    README.md
+    run-01/
+      transcript.md           # onbewerkte uitvoer (nu nog leeg)
+      metadata.md             # na test aanmaken en invullen
+  whisper-small/
+    run-01/
+      transcript.txt
+      metadata.md
+      notes.md                # alleen indien getest
 ```
 
-- `transcript.txt`: letterlijk de **ruwe** ASR-uitvoer; niets handmatig herstellen. Niet van toepassing bij modellen die alleen sessienotities leveren.
+- `transcript.txt` of `transcript.md`: letterlijk de **ruwe** ASR-uitvoer; niets handmatig herstellen. Gebruik een consistent bestandsformaat per model. Niet van toepassing bij modellen die alleen sessienotities leveren.
 - `notes.md`: onbewerkte door het model geproduceerde sessienotities, indien van toepassing.
 - `metadata.md`: maak een kopie van [`_metadata-template.md`](_metadata-template.md) en vul minstens model/revisie, runtime, hardware, bronbestand of live input, parameters en uitvoeringstijd in.
 
