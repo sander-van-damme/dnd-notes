@@ -19,3 +19,7 @@ Eén **Nederlandstalig** fictief Dungeons & Dragons-gesprek met gangbare **Engel
 **Let op:** `reference.md` is de beoogde tekst, geen geverifieerd transcript van een daadwerkelijke opname. Als je tijdens het inspreken woorden overslaat, toevoegt of jezelf verspeekt, maak dan ook een *gecontroleerd letterlijk transcript van de opname* voor een betrouwbare WER-berekening. Bewaar de originele referentie onveranderd. Voor vaktermen zoals `d20`, `gold pieces` en `Mage Hand` kan tokenisatie/normalisatie de ruwe score beïnvloeden; rapporteer altijd wat je genormaliseerd hebt.
 
 Deze dataset bevat nog geen audiobestand en voert nog geen automatische scoreberekening uit.
+
+## Afzonderlijke snelheidsbenchmark
+
+De [Parakeet Web hardwarebenchmark van 14 oktober 2026](../parakeet-web-performance/2026-10-14/README.md) bevat metingen van WASM en WebGPU op JFK-audio, maar **geen** transcriptie of foutscore van dit D&D-script. Bewaar de Nederlandse ASR-resultaten onder [results/](results/).

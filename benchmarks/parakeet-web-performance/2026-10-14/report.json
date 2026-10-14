@@ -1,0 +1,597 @@
+{
+  "format": "parakeetweb-benchmark-report/1",
+  "reportId": "d9fb186a-04b8-42b7-8ff0-f5f2366fdf35",
+  "generatedAt": "2026-10-14T19:00:00.000Z",
+  "app": {
+    "version": "11.4.0",
+    "commit": "unknown",
+    "modelRepo": "Olicorne/parakeet-tdt-0.6b-v3-ultra-onnx",
+    "modelSource": "both"
+  },
+  "settings": {
+    "cpuThreads": 4,
+    "parallelEncode": true,
+    "enableChunking": true,
+    "chunkDurationSec": 60,
+    "beamWidth": 1,
+    "phraseBoostActive": false,
+    "boostStrength": null
+  },
+  "clip": {
+    "source": "John F. Kennedy, inaugural address (US Government work, public domain)",
+    "shortSec": 11,
+    "longSec": 90,
+    "repeats": 1
+  },
+  "environment": {
+    "browser": {
+      "brands": [
+        {
+          "brand": "Chromium",
+          "version": "154"
+        },
+        {
+          "brand": "Google Chrome",
+          "version": "154"
+        },
+        {
+          "brand": "Not A(Brand",
+          "version": "99"
+        }
+      ],
+      "platform": "Windows",
+      "platformVersionMajor": "19",
+      "architecture": "x86",
+      "bitness": "64",
+      "mobile": false,
+      "engineHint": null,
+      "webdriver": false
+    },
+    "hardware": {
+      "hardwareConcurrency": 16,
+      "deviceMemoryGB": 16,
+      "jsHeapLimitMB": 4396
+    },
+    "capabilities": {
+      "secureContext": true,
+      "crossOriginIsolated": true,
+      "sharedArrayBuffer": true,
+      "wasm": {
+        "simd": true,
+        "threads": true
+      },
+      "webgpu": true,
+      "audioWorklet": true,
+      "mediaDevices": true,
+      "wakeLock": true,
+      "clipboard": true,
+      "indexedDB": true
+    },
+    "webgpu": {
+      "adapter": {
+        "vendor": "intel",
+        "architecture": "gen-12lp",
+        "device": "",
+        "description": "",
+        "subgroupMinSize": 8,
+        "subgroupMaxSize": 16,
+        "isFallbackAdapter": false
+      },
+      "features": [
+        "bgra8unorm-storage",
+        "clip-distances",
+        "core-features-and-limits",
+        "depth-clip-control",
+        "depth32float-stencil8",
+        "dual-source-blending",
+        "float32-blendable",
+        "float32-filterable",
+        "indirect-first-instance",
+        "primitive-index",
+        "rg11b10ufloat-renderable",
+        "shader-f16",
+        "subgroup-size-control",
+        "subgroups",
+        "texture-component-swizzle",
+        "texture-compression-bc",
+        "texture-compression-bc-sliced-3d",
+        "texture-formats-tier1",
+        "texture-formats-tier2",
+        "timestamp-query"
+      ],
+      "limits": {
+        "maxTextureDimension1D": 16384,
+        "maxTextureDimension2D": 16384,
+        "maxTextureDimension3D": 2048,
+        "maxTextureArrayLayers": 2048,
+        "maxBindGroups": 4,
+        "maxBindGroupsPlusVertexBuffers": 24,
+        "maxBindingsPerBindGroup": 1000,
+        "maxDynamicUniformBuffersPerPipelineLayout": 10,
+        "maxDynamicStorageBuffersPerPipelineLayout": 8,
+        "maxSampledTexturesPerShaderStage": 48,
+        "maxSamplersPerShaderStage": 16,
+        "maxStorageBuffersPerShaderStage": 16,
+        "maxStorageTexturesPerShaderStage": 8,
+        "maxUniformBuffersPerShaderStage": 12,
+        "maxUniformBufferBindingSize": 65536,
+        "maxStorageBufferBindingSize": 2147483644,
+        "minUniformBufferOffsetAlignment": 256,
+        "minStorageBufferOffsetAlignment": 256,
+        "maxVertexBuffers": 8,
+        "maxBufferSize": 2147483648,
+        "maxVertexAttributes": 30,
+        "maxVertexBufferArrayStride": 2048,
+        "maxInterStageShaderVariables": 28,
+        "maxColorAttachments": 8,
+        "maxColorAttachmentBytesPerSample": 128,
+        "maxComputeWorkgroupStorageSize": 32768,
+        "maxComputeInvocationsPerWorkgroup": 1024,
+        "maxComputeWorkgroupSizeX": 1024,
+        "maxComputeWorkgroupSizeY": 1024,
+        "maxComputeWorkgroupSizeZ": 64,
+        "maxComputeWorkgroupsPerDimension": 65535,
+        "maxImmediateSize": 64,
+        "maxStorageBuffersInFragmentStage": 16,
+        "maxStorageTexturesInFragmentStage": 8,
+        "maxStorageBuffersInVertexStage": 16,
+        "maxStorageTexturesInVertexStage": 8
+      },
+      "adapters": [
+        {
+          "powerPreference": [
+            "default",
+            "high-performance",
+            "low-power"
+          ],
+          "info": {
+            "vendor": "intel",
+            "architecture": "gen-12lp",
+            "device": "",
+            "description": "",
+            "subgroupMinSize": 8,
+            "subgroupMaxSize": 16,
+            "isFallbackAdapter": false
+          },
+          "features": [
+            "bgra8unorm-storage",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 16,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 2147483644,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 2147483648,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 16,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 16,
+            "maxStorageTexturesInVertexStage": 8
+          },
+          "isFallbackAdapter": null
+        }
+      ]
+    },
+    "gpuRenderers": [
+      {
+        "powerPreference": [
+          "high-performance",
+          "low-power"
+        ],
+        "vendor": "Google Inc. (Intel)",
+        "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x0000A7A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "unmasked": true
+      }
+    ],
+    "ort": {
+      "versions": {
+        "common": "1.30.0",
+        "web": "1.30.0"
+      },
+      "wasm": {
+        "numThreads": 4,
+        "simd": true,
+        "proxy": false
+      }
+    },
+    "connection": {
+      "effectiveType": "4g",
+      "downlinkMbit": 10
+    }
+  },
+  "results": [
+    {
+      "id": "wasm:w4a8",
+      "backend": "wasm",
+      "quant": "w4a8",
+      "profile": "short",
+      "loadMs": 21333,
+      "loadDownloadMB": 383.5,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 11,
+      "wallMs": 2125,
+      "rtf": 0.193,
+      "wallMsRuns": [
+        2125
+      ],
+      "metrics": {
+        "preprocess_ms": 9.6,
+        "encode_ms": 2027.5,
+        "decode_ms": 84.8,
+        "tokenize_ms": 0.1,
+        "total_ms": 2122.8,
+        "procPerDur": 0.19
+      },
+      "chunks": 1,
+      "similarity": 1,
+      "words": 22
+    },
+    {
+      "id": "wasm:w4a8",
+      "backend": "wasm",
+      "quant": "w4a8",
+      "profile": "long",
+      "loadMs": 21333,
+      "loadDownloadMB": 383.5,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 90,
+      "wallMs": 21725,
+      "rtf": 0.241,
+      "wallMsRuns": [
+        21725
+      ],
+      "metrics": {
+        "preprocess_ms": 101.6,
+        "encode_ms": 32014.3,
+        "decode_ms": 598.5,
+        "tokenize_ms": 0.2,
+        "total_ms": 600.9,
+        "procPerDur": 0.01
+      },
+      "chunks": 2,
+      "similarity": null,
+      "words": 181
+    },
+    {
+      "id": "wasm:fp32",
+      "backend": "wasm",
+      "quant": "fp32",
+      "profile": "short",
+      "loadMs": 118205,
+      "loadDownloadMB": 2436,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 11,
+      "wallMs": 1698,
+      "rtf": 0.154,
+      "wallMsRuns": [
+        1698
+      ],
+      "metrics": {
+        "preprocess_ms": 11,
+        "encode_ms": 1614.5,
+        "decode_ms": 69.1,
+        "tokenize_ms": 0.1,
+        "total_ms": 1695.2,
+        "procPerDur": 0.15
+      },
+      "chunks": 1,
+      "similarity": 1,
+      "words": 22
+    },
+    {
+      "id": "wasm:fp32",
+      "backend": "wasm",
+      "quant": "fp32",
+      "profile": "long",
+      "loadMs": 118205,
+      "loadDownloadMB": 2436,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 90,
+      "wallMs": 21508,
+      "rtf": 0.239,
+      "wallMsRuns": [
+        21508
+      ],
+      "metrics": {
+        "preprocess_ms": 110.3,
+        "encode_ms": 20676.7,
+        "decode_ms": 701.7,
+        "tokenize_ms": 0.2,
+        "total_ms": 21494.8,
+        "procPerDur": 0.24
+      },
+      "chunks": 2,
+      "similarity": null,
+      "words": 181
+    },
+    {
+      "id": "webgpu-hybrid:fp32",
+      "backend": "webgpu-hybrid",
+      "quant": "fp32",
+      "profile": "short",
+      "loadMs": 59562,
+      "loadDownloadMB": 935.4,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 11,
+      "wallMs": 1985,
+      "rtf": 0.18,
+      "wallMsRuns": [
+        1985
+      ],
+      "metrics": {
+        "preprocess_ms": 10.6,
+        "encode_ms": 1846.5,
+        "decode_ms": 113.2,
+        "tokenize_ms": 0.1,
+        "total_ms": 1971.4,
+        "procPerDur": 0.18
+      },
+      "chunks": 1,
+      "similarity": 1,
+      "words": 22
+    },
+    {
+      "id": "webgpu-hybrid:fp32",
+      "backend": "webgpu-hybrid",
+      "quant": "fp32",
+      "profile": "long",
+      "loadMs": 59562,
+      "loadDownloadMB": 935.4,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 90,
+      "wallMs": 22489,
+      "rtf": 0.25,
+      "wallMsRuns": [
+        22489
+      ],
+      "metrics": {
+        "preprocess_ms": 136.9,
+        "encode_ms": 22003.5,
+        "decode_ms": 1360.4,
+        "tokenize_ms": 0.3,
+        "total_ms": 1365.4,
+        "procPerDur": 0.02
+      },
+      "chunks": 2,
+      "similarity": null,
+      "words": 181
+    },
+    {
+      "id": "webgpu-hybrid:w4a8",
+      "backend": "webgpu-hybrid",
+      "quant": "w4a8",
+      "profile": "short",
+      "loadMs": 23749,
+      "loadDownloadMB": 383.5,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 11,
+      "wallMs": 445,
+      "rtf": 0.04,
+      "wallMsRuns": [
+        445
+      ],
+      "metrics": {
+        "preprocess_ms": 10,
+        "encode_ms": 323.8,
+        "decode_ms": 98.9,
+        "tokenize_ms": 0.1,
+        "total_ms": 433.3,
+        "procPerDur": 0.04
+      },
+      "chunks": 1,
+      "similarity": 1,
+      "words": 22
+    },
+    {
+      "id": "webgpu-hybrid:w4a8",
+      "backend": "webgpu-hybrid",
+      "quant": "w4a8",
+      "profile": "long",
+      "loadMs": 23749,
+      "loadDownloadMB": 383.5,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 90,
+      "wallMs": 9823,
+      "rtf": 0.109,
+      "wallMsRuns": [
+        9823
+      ],
+      "metrics": {
+        "preprocess_ms": 78.8,
+        "encode_ms": 7647.2,
+        "decode_ms": 2045.8,
+        "tokenize_ms": 0.4,
+        "total_ms": 2054.8,
+        "procPerDur": 0.02
+      },
+      "chunks": 2,
+      "similarity": null,
+      "words": 181
+    },
+    {
+      "id": "webgpu-hybrid:fp16",
+      "backend": "webgpu-hybrid",
+      "quant": "fp16",
+      "profile": "short",
+      "loadMs": 62273,
+      "loadDownloadMB": 1218.3,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 11,
+      "wallMs": 539,
+      "rtf": 0.049,
+      "wallMsRuns": [
+        539
+      ],
+      "metrics": {
+        "preprocess_ms": 9.5,
+        "encode_ms": 447.1,
+        "decode_ms": 70.9,
+        "tokenize_ms": 0.1,
+        "total_ms": 528.8,
+        "procPerDur": 0.05
+      },
+      "chunks": 1,
+      "similarity": 1,
+      "words": 22
+    },
+    {
+      "id": "webgpu-hybrid:fp16",
+      "backend": "webgpu-hybrid",
+      "quant": "fp16",
+      "profile": "long",
+      "loadMs": 62273,
+      "loadDownloadMB": 1218.3,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 90,
+      "wallMs": 3229,
+      "rtf": 0.036,
+      "wallMsRuns": [
+        3229
+      ],
+      "metrics": {
+        "preprocess_ms": 82.2,
+        "encode_ms": 2865.2,
+        "decode_ms": 764.9,
+        "tokenize_ms": 0.1,
+        "total_ms": 766.6,
+        "procPerDur": 0.01
+      },
+      "chunks": 2,
+      "similarity": null,
+      "words": 181
+    },
+    {
+      "id": "wasm:int8",
+      "backend": "wasm",
+      "quant": "int8",
+      "profile": "short",
+      "loadMs": 32825,
+      "loadDownloadMB": 649.5,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 11,
+      "wallMs": 2011,
+      "rtf": 0.183,
+      "wallMsRuns": [
+        2011
+      ],
+      "metrics": {
+        "preprocess_ms": 10.1,
+        "encode_ms": 1921.8,
+        "decode_ms": 75.7,
+        "tokenize_ms": 0.1,
+        "total_ms": 2008.1,
+        "procPerDur": 0.18
+      },
+      "chunks": 1,
+      "similarity": 1,
+      "words": 22
+    },
+    {
+      "id": "wasm:int8",
+      "backend": "wasm",
+      "quant": "int8",
+      "profile": "long",
+      "loadMs": 32825,
+      "loadDownloadMB": 649.5,
+      "loadCached": false,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 90,
+      "wallMs": 26952,
+      "rtf": 0.299,
+      "wallMsRuns": [
+        26952
+      ],
+      "metrics": {
+        "preprocess_ms": 125.1,
+        "encode_ms": 41434.4,
+        "decode_ms": 731,
+        "tokenize_ms": 0.4,
+        "total_ms": 732.5,
+        "procPerDur": 0.01
+      },
+      "chunks": 2,
+      "similarity": null,
+      "words": 181
+    }
+  ]
+}
