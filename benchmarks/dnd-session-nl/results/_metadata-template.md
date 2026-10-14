@@ -1,0 +1,21 @@
+# Modelrun
+
+- Datum (ISO 8601):
+- Modelnaam:
+- Exacte versie / commit / revisie:
+- Taak: transcriptie / sessienotities / beide
+- Runtime en versie (bijv. Transformers.js, whisper.cpp):
+- Quantisatie en uitvoeringsprovider (CPU / WebGPU / andere):
+- Device, besturingssysteem en browser:
+- Input: zelfde opgenomen audiobestand / nieuwe live voorlezing
+- Audio-ID of SHA-256 (optioneel maar aanbevolen):
+- Microfoon en opname-instellingen, indien live:
+- Taalinstelling:
+- Prompt, woordenlijst of meegegeven context:
+- Preprocessing (resampling / VAD / chunking):
+- Andere inferentieparameters:
+- Audiolengte:
+- Laadtijd:
+- Verwerkingstijd (exclusief laden):
+- Foutmeldingen of bijzonderheden:
+- Beoordeling achteraf (bewaar apart van ruwe output):
