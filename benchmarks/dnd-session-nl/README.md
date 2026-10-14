@@ -13,6 +13,10 @@ Vermeld als het kan welk model en welke configuratie je testte, welke audio werd
 
 De referentietekst is wat je **bedoelde voor te lezen**. Voor een definitieve WER moet de referentie overeenkomen met de **werkelijk uitgesproken** woorden. Vergelijk transcriptienauwkeurigheid (WER) los van inhoudelijke sessienotities (correcte feiten, gemiste gebeurtenissen en verzinsels).
 
+## Volgende modelvergelijkingen
+
+Een [**gecontroleerde inventaris van audio-AI-modellen**](model-inventory-audio.md) vergelijkt spraakherkenners en audio-LLM's voor Nederlands én Engels, inclusief browserhaalbaarheid, modellen die afvallen en de aanbevolen testvolgorde. De afgeronde Parakeet-benchmark blijft de baseline; we gebruiken **dezelfde D&D-opname en referentie**.
+
 ## Huidige bevindingen
 
 Bij [Parakeet TDT 0.6B v3 Ultra](results/parakeet-tdt-0.6b-v3-ultra-onnx/README.md) daalde de WER op deze ene opname van **13,80%** zonder boosting naar **12,29%** met phrase boosting en Beam Width 5. Niet alle NPC-namen worden correct herkend, en `gewond` wordt zelfs `gewoon`. Daarom wordt hier niet alleen op woordfouten geoptimaliseerd: het correct bewaren van **verhaalfeiten** is minstens zo belangrijk.
