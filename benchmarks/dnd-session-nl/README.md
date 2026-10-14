@@ -3,9 +3,7 @@
 Een fictieve D&D-sessie om spraakherkenningsmodellen en later de kwaliteit van sessienotities te vergelijken.
 
 - [**reference.md**](reference.md): het script om één keer voor te lezen/op te nemen.
-- [**expected-facts.md**](expected-facts.md): controlepunten om achteraf sessienotities te beoordelen.
 - [**results/**](results/): resultaten van de verschillende modellen en tools.
-- [**Parakeet Web-resultaten**](results/parakeet-web/README.md): onze test met een opgenomen Nederlandstalige D&D-sessie, inclusief WER en ruwe transcripties.
 
 ## Gebruik
 
