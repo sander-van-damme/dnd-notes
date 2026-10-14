@@ -1,10 +1,9 @@
-# Parakeet Web Ultra — eigen D&D MP3, WER en supportlog
+# Parakeet Web Ultra — D&D WER-test van 14 oktober 2026
 
 **Originele exports**, overgezet vanuit `sander-van-damme/project-shape-display` naar deze benchmarkmap:
 
 - [`parakeet-web-custom-mp3-wer.json`](parakeet-web-custom-mp3-wer.json) — de WER-sidecar met **zes ruwe modeltranscripties**, exacte foutentelling, referentietekst en uitvoeringsvolgorde.
 - [`parakeetweb-log.json`](parakeetweb-log.json) — de **support/diagnostic report**, geen benchmarkresultaten; bevat browser-, netwerk-, hardware- en instellingsinformatie. De JSON is ongewijzigd.
-- Eerdere afzonderlijke [snelheidstest met MP3 van 209,43 seconden](../custom-mp3-long-profile-run-01/README.md) en de [eerder handmatig geplakte consoletabel](../custom-mp3-wer-console-results.md).
 
 ## Herkomst en betrouwbaarheid
 
@@ -12,9 +11,9 @@
 - WER-export gemaakt op `2026-10-14T21:28:27.020Z` (benchmark start `2026-10-14T21:13:06.072Z`).
 - Audio volgens sidecar: `dnd-demo.mp3`, **3,409,388 bytes**. Het **MP3 zelf ontbreekt**, dus de uitgesproken woorden zijn niet onafhankelijk gecontroleerd.
 - Modelkoppeling: `modelMappingVerified: true`, en alle **6** `plannedConfigurations` staan in exact dezelfde volgorde als `results`.
-- Referentie: de meegeleverde `reference.text` is na normalisatie **gelijk** aan [`reference.md`](../../../dnd-session-nl/reference.md). Exacte tekstbytes verschillen alleen door witruimte/alinea-indeling; bronblob is `da04174998108e39bcb044a7c20936a16b362d76`.
+- Referentie: de meegeleverde `reference.text` is na normalisatie **gelijk** aan [`reference.md`](../../../reference.md). Exacte tekstbytes verschillen alleen door witruimte/alinea-indeling; bronblob is `da04174998108e39bcb044a7c20936a16b362d76`.
 - `verifiedAgainstActualRecording: false`: **WER blijft voorlopig** zolang geen gecorrigeerd letterlijk transcript van de daadwerkelijke opname beschikbaar is.
-- De WER JSON bevat **geen timings**. Een eerdere performance-export heeft per model **dezelfde herkende woordenaantallen**, maar bij gebrek aan een audiohash/run-ID kan niet bewezen worden dat het om identieke opnamebytes en dezelfde run gaat.
+- De WER-JSON bevat **geen verwerkingstijden**. Dit resultaat laat op zichzelf dus geen gecombineerde snelheids-/nauwkeurigheidsvergelijking toe.
 
 ## Gecontroleerde woordfoutpercentages
 
@@ -60,7 +59,6 @@ Positief: veel andere D&D-termen en verhaalonderdelen blijven wel herkenbaar. Al
 - **WebGPU-hybrid fp16** heeft met **13,80%** de laagste originele WER (73 fouten). **WASM int8** volgt op **14,37%** (76 fouten): slechts **drie** fouten verschil bij deze opname, onvoldoende voor een algemene kwaliteitsclaim.
 - Bij beide **fp32**-backends zijn de volledige ruwe transcripties zelfs **byte-voor-byte identiek**, niet enkel de foutsommen; de gekozen uitvoeringsbackend veranderde de woorden hier niet.
 - **WASM w4a8** maakt **14 fouten meer** dan fp16 (87 tegenover 73). Eén opname volstaat niet om dit verschil naar andere D&D-sessies te extrapoleren.
-- Uit de eerdere afzonderlijke snelheidstest bleek **WebGPU fp16 ~10,29 s** tegenover **WebGPU w4a8 ~17,38 s** voor 209,43 s audio. Deze snelheden zijn **niet** in de huidige WER-sidecar opgeslagen. Een directe per-run trade-off tussen snelheid en fouten vereist een traceerbare gezamenlijke run.
 
 ## De supportlog is geen betrouwbare apparaatidentificatie
 
