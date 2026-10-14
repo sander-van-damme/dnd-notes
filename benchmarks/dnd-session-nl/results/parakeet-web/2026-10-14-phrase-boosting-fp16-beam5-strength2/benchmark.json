@@ -1,0 +1,278 @@
+{
+  "format": "parakeetweb-benchmark-report/1",
+  "reportId": "1c603525-8783-45a3-8a6d-7b27e697bb33",
+  "generatedAt": "2026-10-14T22:00:00.000Z",
+  "app": {
+    "version": "11.4.0",
+    "commit": "unknown",
+    "modelRepo": "Olicorne/parakeet-tdt-0.6b-v3-ultra-onnx",
+    "modelSource": "both"
+  },
+  "settings": {
+    "cpuThreads": 4,
+    "parallelEncode": true,
+    "enableChunking": true,
+    "chunkDurationSec": 60,
+    "beamWidth": 5,
+    "phraseBoostActive": true,
+    "boostStrength": 2
+  },
+  "clip": {
+    "source": "John F. Kennedy, inaugural address (US Government work, public domain)",
+    "shortSec": 209.43,
+    "longSec": null,
+    "repeats": 1
+  },
+  "environment": {
+    "browser": {
+      "brands": [
+        {
+          "brand": "Chromium",
+          "version": "154"
+        },
+        {
+          "brand": "Google Chrome",
+          "version": "154"
+        },
+        {
+          "brand": "Not A(Brand",
+          "version": "99"
+        }
+      ],
+      "platform": "Windows",
+      "platformVersionMajor": "19",
+      "architecture": "x86",
+      "bitness": "64",
+      "mobile": false,
+      "engineHint": null,
+      "webdriver": false
+    },
+    "hardware": {
+      "hardwareConcurrency": 16,
+      "deviceMemoryGB": 16,
+      "jsHeapLimitMB": 4396
+    },
+    "capabilities": {
+      "secureContext": true,
+      "crossOriginIsolated": true,
+      "sharedArrayBuffer": true,
+      "wasm": {
+        "simd": true,
+        "threads": true
+      },
+      "webgpu": true,
+      "audioWorklet": true,
+      "mediaDevices": true,
+      "wakeLock": true,
+      "clipboard": true,
+      "indexedDB": true
+    },
+    "webgpu": {
+      "adapter": {
+        "vendor": "intel",
+        "architecture": "gen-12lp",
+        "device": "",
+        "description": "",
+        "subgroupMinSize": 8,
+        "subgroupMaxSize": 16,
+        "isFallbackAdapter": false
+      },
+      "features": [
+        "bgra8unorm-storage",
+        "clip-distances",
+        "core-features-and-limits",
+        "depth-clip-control",
+        "depth32float-stencil8",
+        "dual-source-blending",
+        "float32-blendable",
+        "float32-filterable",
+        "indirect-first-instance",
+        "primitive-index",
+        "rg11b10ufloat-renderable",
+        "shader-f16",
+        "subgroup-size-control",
+        "subgroups",
+        "texture-component-swizzle",
+        "texture-compression-bc",
+        "texture-compression-bc-sliced-3d",
+        "texture-formats-tier1",
+        "texture-formats-tier2",
+        "timestamp-query"
+      ],
+      "limits": {
+        "maxTextureDimension1D": 16384,
+        "maxTextureDimension2D": 16384,
+        "maxTextureDimension3D": 2048,
+        "maxTextureArrayLayers": 2048,
+        "maxBindGroups": 4,
+        "maxBindGroupsPlusVertexBuffers": 24,
+        "maxBindingsPerBindGroup": 1000,
+        "maxDynamicUniformBuffersPerPipelineLayout": 10,
+        "maxDynamicStorageBuffersPerPipelineLayout": 8,
+        "maxSampledTexturesPerShaderStage": 48,
+        "maxSamplersPerShaderStage": 16,
+        "maxStorageBuffersPerShaderStage": 16,
+        "maxStorageTexturesPerShaderStage": 8,
+        "maxUniformBuffersPerShaderStage": 12,
+        "maxUniformBufferBindingSize": 65536,
+        "maxStorageBufferBindingSize": 2147483644,
+        "minUniformBufferOffsetAlignment": 256,
+        "minStorageBufferOffsetAlignment": 256,
+        "maxVertexBuffers": 8,
+        "maxBufferSize": 2147483648,
+        "maxVertexAttributes": 30,
+        "maxVertexBufferArrayStride": 2048,
+        "maxInterStageShaderVariables": 28,
+        "maxColorAttachments": 8,
+        "maxColorAttachmentBytesPerSample": 128,
+        "maxComputeWorkgroupStorageSize": 32768,
+        "maxComputeInvocationsPerWorkgroup": 1024,
+        "maxComputeWorkgroupSizeX": 1024,
+        "maxComputeWorkgroupSizeY": 1024,
+        "maxComputeWorkgroupSizeZ": 64,
+        "maxComputeWorkgroupsPerDimension": 65535,
+        "maxImmediateSize": 64,
+        "maxStorageBuffersInFragmentStage": 16,
+        "maxStorageTexturesInFragmentStage": 8,
+        "maxStorageBuffersInVertexStage": 16,
+        "maxStorageTexturesInVertexStage": 8
+      },
+      "adapters": [
+        {
+          "powerPreference": [
+            "default",
+            "high-performance",
+            "low-power"
+          ],
+          "info": {
+            "vendor": "intel",
+            "architecture": "gen-12lp",
+            "device": "",
+            "description": "",
+            "subgroupMinSize": 8,
+            "subgroupMaxSize": 16,
+            "isFallbackAdapter": false
+          },
+          "features": [
+            "bgra8unorm-storage",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 16,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 2147483644,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 2147483648,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 16,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 16,
+            "maxStorageTexturesInVertexStage": 8
+          },
+          "isFallbackAdapter": null
+        }
+      ]
+    },
+    "gpuRenderers": [
+      {
+        "powerPreference": [
+          "high-performance",
+          "low-power"
+        ],
+        "vendor": "Google Inc. (Intel)",
+        "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x0000A7A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "unmasked": true
+      }
+    ],
+    "ort": {
+      "versions": {
+        "common": "1.30.0",
+        "web": "1.30.0"
+      },
+      "wasm": {
+        "numThreads": 4,
+        "simd": true,
+        "proxy": false
+      }
+    },
+    "connection": {
+      "effectiveType": "4g",
+      "downlinkMbit": 10
+    }
+  },
+  "results": [
+    {
+      "id": "webgpu-hybrid:fp16",
+      "backend": "webgpu-hybrid",
+      "quant": "fp16",
+      "profile": "short",
+      "loadMs": 5283,
+      "loadDownloadMB": 0,
+      "loadCached": true,
+      "repeats": 1,
+      "warmup": true,
+      "status": "ok",
+      "audioSec": 209.43,
+      "wallMs": 9861,
+      "rtf": 0.047,
+      "wallMsRuns": [
+        9861
+      ],
+      "metrics": {
+        "preprocess_ms": 185.9,
+        "encode_ms": 7176.7,
+        "decode_ms": 5539,
+        "tokenize_ms": 0.6,
+        "total_ms": 5540.7,
+        "procPerDur": 0.03
+      },
+      "chunks": 4,
+      "similarity": 0.886,
+      "words": 527
+    }
+  ]
+}
