@@ -23,3 +23,5 @@ Deze dataset bevat nog geen audiobestand en voert nog geen automatische scoreber
 ## Afzonderlijke snelheidsbenchmark
 
 De [Parakeet Web hardwarebenchmark van 14 oktober 2026](../parakeet-web-performance/2026-10-14/README.md) bevat metingen van WASM en WebGPU op JFK-audio, maar **geen** transcriptie of foutscore van dit D&D-script. Bewaar de Nederlandse ASR-resultaten onder [results/](results/).
+
+Voor Parakeet Web kun je desgewenst de [tijdelijke benchmarkhelper met eigen MP3, expected text en echte WER](../parakeet-web-performance/README.md#eigen-mp3-met-correcte-wer-tijdelijke-devtools-helper) gebruiken. Die levert **een aparte WER-export met ruwe transcripties** op; de ingebouwde similarity-score is geen WER.

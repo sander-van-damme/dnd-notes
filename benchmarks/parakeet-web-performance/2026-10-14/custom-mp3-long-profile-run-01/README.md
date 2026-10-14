@@ -51,6 +51,6 @@ In het rapport staat `clip.source` nog steeds op **John F. Kennedy**. Dat is **o
 
 ## Herhalen met eigen audio én eigen expected text
 
-De experimentele [console-helper](../../custom-audio-expected-console.js) onderschept de ingebouwde JFK-MP3 **en** vervangt, alleen in de huidige pagina, de verwachte Kennedy-zin bij de similarity-berekening door [de D&D-referentietekst](../../../dnd-session-nl/reference.md). De tool is bewust beperkt tot de gecontroleerde codeversie van Parakeet Web 11.4.0.
+De experimentele [console-helper](../../custom-audio-expected-console.js) onderschept de ingebouwde JFK-MP3, vervangt de verwachte Kennedy-zin bij de ingebouwde similarity-berekening én **berekent apart WER** op basis van het tijdens de scoring onderschepte ruwe transcript. Er is een aparte JSON-download met WER en uitvoer per model. De code is opgesteld voor Parakeet Web 11.4.0; zie de [instructies en beperkingen](../../README.md#eigen-mp3-met-correcte-wer-tijdelijke-devtools-helper).
 
-Start de benchmark met **Long Audio Profile uit** als de opname >90 s is. De helper corrigeert **niet** automatisch het exportveld `clip.source`; vermeld daar achteraf steeds dat het om eigen MP3 gaat. De functie blijft een tijdelijke hack en berekent **geen WER**.
+Start de benchmark met **Long Audio Profile uit** als de opname >90 s is. De helper corrigeert **niet** automatisch het exportveld `clip.source`; vermeld daar achteraf steeds dat het om eigen MP3 gaat. De ingebouwde `similarity` blijft LCS-overeenkomst. De **aparte WER-export** kan pas uit een **volgende** testrun worden gemaakt, omdat dit historische rapport geen transcripties bevat.
