@@ -16,7 +16,7 @@ Maak per echte testrun een submap (`run-01/`, `run-02/`, …) en bewaar daarin:
 - `transcript.txt` — **onbewerkte modeluitvoer** (ook fouten laten staan);
 - `metadata.md` — kopie van [`../_metadata-template.md`](../_metadata-template.md), met de gebruikte instellingen, microfoon/audiofile en timings.
 
-De voorleestekst staat in [`../../reference.txt`](../../reference.txt). Gebruik voor vergelijkbare resultaten bij voorkeur **hetzelfde audiobestand** voor alle modellen, niet telkens een nieuwe live voorlezing.
+De voorleestekst staat in [`../../reference.md`](../../reference.md). Gebruik voor vergelijkbare resultaten bij voorkeur **hetzelfde audiobestand** voor alle modellen, niet telkens een nieuwe live voorlezing.
 
 ### Opmerking over microfoontests
 
